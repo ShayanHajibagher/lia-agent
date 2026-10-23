@@ -810,6 +810,8 @@ main {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; text-align: center; max-width: 440px; color: var(--muted);
 }
+/* بدون این، display:flex روی hidden غلبه می‌کرد و حالت خالی روی پیش‌نمایش می‌ماند */
+.preview-empty[hidden], .preview-iframe[hidden] { display: none !important; }
 .empty-icon { font-size: 40px; }
 .preview-empty h3 { margin: 0; font-size: 16px; color: #e2e8f0; }
 .preview-empty p { margin: 0; font-size: 12.5px; line-height: 1.8; }

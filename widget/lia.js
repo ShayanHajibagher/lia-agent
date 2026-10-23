@@ -2180,6 +2180,7 @@
         const headings = [...document.querySelectorAll('h1,h2')]
           .slice(0, 6)
           .map((h) => h.textContent.trim().slice(0, 80));
+        await ensureSession();
         const data = await api('/api/context', {
           method: 'POST',
           body: JSON.stringify({ sessionId: state.sessionId, path: location.pathname, title: document.title, headings }),

@@ -591,8 +591,10 @@ async function routeApi(req, res, url, urlPath) {
   /* --- تغییر صفحه --- */
   if (urlPath === '/api/context' && req.method === 'POST') {
     const body = await readJson(req);
-    const session = withSession(body, res);
-    if (!session) return;
+    // آگاهی از صفحه یک گزارش پس‌زمینه است؛ نبودِ سشن نباید 404 بدهد
+    // (ویجت ممکن است قبل از آماده‌شدن سشن این را بفرستد)
+    const session = getSession(body.sessionId);
+    if (!session) return json(res, 200, { events: [], state: null });
     const events = [];
     handleContext(session, { path: body.path, title: body.title, headings: body.headings || [] }, (e) => events.push(e));
     return json(res, 200, { events, state: { mode: session.mode, stage: session.stage, guided: session.guided } });
