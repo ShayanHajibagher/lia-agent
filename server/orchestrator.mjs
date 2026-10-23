@@ -189,10 +189,60 @@ export async function greet(session, emit) {
  * هیچ ادعای موفقیت/عددی از خودش اضافه نمی‌کند. اگر مدل در دسترس نباشد،
  * یک جملهٔ کوتاه و واقعیت‌محور (fallback) گذاشته می‌شود.
  */
-async function narrate(session, emit, instruction, fallback) {
+/** رقم‌های فارسی/عربی را به لاتین و بدون جداکننده تبدیل می‌کند */
+function normalizeDigits(value) {
+  return String(value ?? '')
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[٬,،\s]/g, '');
+}
+
+/** همهٔ عددهای متن باید در فهرست مجاز باشند (تطابق کامل) */
+function numbersAllowed(text, allowed) {
+  if (!Array.isArray(allowed) || !allowed.length) return true;
+  const pool = new Set(allowed.map((n) => normalizeDigits(n)).filter(Boolean));
+  const found = normalizeDigits(text).match(/\d+/g) || [];
+  return found.every((n) => pool.has(n));
+}
+
+/**
+ * «روایت» رویداد واقعی توسط مدل.
+ *
+ * `opts.numbers` = فهرست اعداد مجاز. اگر متن مدل عدد دیگری بسازد، به‌جای آن
+ * متن قطعی (fallback) گذاشته می‌شود. در این حالت استریم نمی‌کنیم تا کاربر
+ * عدد اشتباه نبیند.
+ */
+async function narrate(session, emit, instruction, fallback, opts = {}) {
   flushSay(session.id);
   if (!llmInfo().configured) {
     if (fallback) say(session, emit, fallback);
+    return;
+  }
+
+  // مسیر حساس به عدد: کامل بگیر، اعتبارسنجی کن، بعد یک‌جا بفرست
+  if (Array.isArray(opts.numbers)) {
+    emit({ t: 'typing', on: true });
+    let full = '';
+    try {
+      full = await answerInstruction({ session, instruction });
+    } catch {
+      full = '';
+    }
+    // هر عددی که در خودِ دادهٔ واقعی (instruction) آمده مجاز است
+    const fromFacts = normalizeDigits(instruction).match(/\d+/g) || [];
+    const pool = [...opts.numbers, ...fromFacts];
+    const ok = !!full && !!full.trim() && numbersAllowed(full, pool);
+    if (!ok && full && full.trim()) {
+      logLine(
+        session.id,
+        'model',
+        'عدد نامعتبر در روایت مدل بود؛ متن قطعی جایگزین شد — ' + String(full).slice(0, 120),
+        'warn',
+      );
+    }
+    say(session, emit, ok ? full.trim() : fallback || '');
+    emit({ t: 'typing', on: false });
+    touch(session);
     return;
   }
 
@@ -292,7 +342,17 @@ export async function handleChat(session, rawText, emit) {
         const q = session.quote;
         const alt = q.cheaper || q.growth;
         if (alt) {
-          say(session, emit, `گزینهٔ ${alt === q.cheaper ? 'ارزان‌تر' : 'بزرگ‌تر'} «${alt.name}» است با ${alt.monthly.toLocaleString('fa-IR')} تومان در ماه. اگر بخواهی محاسبه را برای همین پلن هم انجام می‌دهم.`);
+          await narrate(
+            session,
+            emit,
+            'این دادهٔ واقعی پلن جایگزین است (JSON):\n' +
+              JSON.stringify({ plan: alt.name, monthly: alt.monthly, current: q.plan.name, currentMonthly: q.plan.monthly }) +
+              '\n\nدر یک جملهٔ کوتاه فقط همین را بگو و پیشنهاد بده محاسبه برای همین پلن انجام شود. عدد جدید نساز.',
+            `گزینهٔ ${alt === q.cheaper ? 'ارزان‌تر' : 'بزرگ‌تر'} «${alt.name}» است با ${alt.monthly.toLocaleString('fa-IR')} تومان در ماه. اگر بخواهی محاسبه را برای همین پلن هم انجام می‌دهم.`,
+            { numbers: [alt.monthly, q.plan.monthly] },
+          );
+          touch(session);
+          return;
         }
         return streamAnswer(session, emit, text);
       }
@@ -507,6 +567,18 @@ export async function computeQuote(session, emit, { quiet = false } = {}) {
       }) +
       '\n\nدر دو جملهٔ کوتاه فقط همین اعداد را توضیح بده. عدد جدید نساز.',
     `پلن ${q.plan.name}: ماهی ${c.monthlyTotal.toLocaleString('fa-IR')} تومان؛ ${c.months} ماه: ${c.periodTotal.toLocaleString('fa-IR')} تومان.`,
+    {
+      numbers: [
+        c.monthlyTotal,
+        c.periodTotal,
+        c.months,
+        c.trafficMonthly,
+        q.plan.ramGb,
+        q.plan.vcpu,
+        q.plan.diskGb,
+        q.cheaper?.monthly,
+      ].filter((n) => n !== undefined && n !== null),
+    },
   );
   touch(session);
   return q;
@@ -668,6 +740,11 @@ export async function handleAnalysis(session, emit, { analysis, source, fileName
     `تحلیل انجام شد: پلتفرم ${a.platform}، ${a.stats.fileCount} فایل، ${a.findings.length} نکته.` +
       (suitability.suitable ? '' : ` پروژه برای هاست وب مناسب نیست: ${suitability.reasons.map((r) => r.title).join('، ')}.`) +
       (quoted ? '' : ' برای محاسبهٔ پلن، تقریباً چند نفر در ماه از این سایت استفاده می‌کنند؟'),
+    {
+      numbers: [a.stats.fileCount, a.findings.length, quoted ? session.quote?.cost?.monthlyTotal : null].filter(
+        (n) => n !== undefined && n !== null,
+      ),
+    },
   );
   touch(session);
 }
@@ -1094,6 +1171,7 @@ export async function handleAction(session, action, payload, emit) {
           '\n\nدر دو جمله بگو چه چیزی اضافه شد و قدم بعدی چیست. ادعای جدید نکن.',
         `انجام شد. ${applied.length} فایل اضافه/تغییر کرد: ${applied.map((f) => f.path).join('، ')}. ` +
           (session.suitability?.suitable ? 'حالا برای هاست وب مناسب است.' : `${session.suitability?.reasons?.length || 0} مورد باقی است.`),
+        { numbers: [applied.length, session.suitability?.reasons?.length || 0] },
       );
       touch(session);
       return;
