@@ -339,6 +339,7 @@
       <label>رمز عبور
         <input id="loginPassword" type="password" required placeholder="••••••••" dir="ltr" autocomplete="current-password" />
       </label>
+      <div id="loginError" class="auth-error" hidden></div>
       <div class="dlg-actions">
         <button class="btn primary" type="submit" id="loginSubmitBtn">ورود به حساب</button>
         <button class="btn ghost" type="button" id="loginLater">فعلاً بدون حساب (مهمان)</button>
@@ -357,6 +358,7 @@
       <label>رمز عبور
         <input id="regPassword" type="password" required minlength="4" placeholder="حداقل ۴ نویسه" dir="ltr" autocomplete="new-password" />
       </label>
+      <div id="regError" class="auth-error" hidden></div>
       <div class="dlg-actions">
         <button class="btn primary" type="submit" id="regSubmitBtn">ساخت حساب کاربری</button>
         <button class="btn ghost" type="button" id="regCancelBtn">انصراف</button>

@@ -68,6 +68,7 @@
     loginEmail: $('loginEmail'),
     loginPassword: $('loginPassword'),
     loginSubmitBtn: $('loginSubmitBtn'),
+    loginError: $('loginError'),
     loginLater: $('loginLater'),
     loginCloseBtn: $('loginCloseBtn'),
     authTabLogin: $('authTabLogin'),
@@ -78,6 +79,7 @@
     regEmail: $('regEmail'),
     regPassword: $('regPassword'),
     regSubmitBtn: $('regSubmitBtn'),
+    regError: $('regError'),
     regCancelBtn: $('regCancelBtn'),
     // Profile Dialog
     profileDialog: $('profileDialog'),
@@ -354,7 +356,12 @@
     } catch {
       json = null;
     }
-    if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+    if (!res.ok) {
+      const e = new Error(json?.error || `HTTP ${res.status}`);
+      e.status = res.status;
+      e.code = json?.code || null;
+      throw e;
+    }
     return json;
   }
 
@@ -366,7 +373,10 @@
     });
     if (!res.ok || !res.body) {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      const e = new Error(err.error || `HTTP ${res.status}`);
+      e.status = res.status;
+      e.code = err.code || null;
+      throw e;
     }
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -422,6 +432,15 @@
   async function loadAccount(accountId) {
     try {
       const data = await api('/api/account', { method: 'POST', body: JSON.stringify({ accountId }) });
+      if (!data || data.missing || !data.account) {
+        // حساب قبلی (قبل از دیپلوی/ری‌استارت) دیگر نیست
+        localStorage.removeItem(LS_ACCOUNT);
+        state.accountId = null;
+        state.account = null;
+        state.plan = null;
+        renderAccount();
+        return false;
+      }
       state.account = data.account;
       state.plan = data.plan;
       state.accountId = data.account?.id || null;
@@ -473,12 +492,24 @@
   el.loginLater?.addEventListener('click', () => el.login.close());
   el.regCancelBtn?.addEventListener('click', () => el.login.close());
 
+  function setAuthError(el, message) {
+    if (!el) return;
+    if (!message) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.hidden = false;
+    el.textContent = message;
+  }
+
   // ارسال فرم ورود
   el.loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = el.loginEmail.value.trim();
     const password = el.loginPassword.value;
     if (!email || !password) return;
+    setAuthError(el.loginError, '');
     if (el.loginSubmitBtn) el.loginSubmitBtn.disabled = true;
     try {
       const data = await api('/api/account/login', {
@@ -494,6 +525,7 @@
       toast('خوش آمدی ' + (state.account.name || state.account.email));
       await loadHistorySessions();
     } catch (err) {
+      setAuthError(el.loginError, err.message);
       toast(err.message);
     } finally {
       if (el.loginSubmitBtn) el.loginSubmitBtn.disabled = false;
@@ -507,6 +539,7 @@
     const email = el.regEmail.value.trim();
     const password = el.regPassword.value;
     if (!name || !email || !password) return;
+    setAuthError(el.regError, '');
     if (el.regSubmitBtn) el.regSubmitBtn.disabled = true;
     try {
       const data = await api('/api/account/register', {
@@ -522,6 +555,7 @@
       toast('حساب کاربری شما با موفقیت ساخته شد!');
       await loadHistorySessions();
     } catch (err) {
+      setAuthError(el.regError, err.message);
       toast(err.message);
     } finally {
       if (el.regSubmitBtn) el.regSubmitBtn.disabled = false;
@@ -614,7 +648,19 @@
       // به ایجنت بگو پلن فعال شد تا ادامه بدهد
       send('پلن را خریدم و فعال شد؛ ادامه بده.');
     } catch (err) {
-      toast(err.message);
+      // حسابِ ذخیره‌شده دیگر روی سرور نیست (ری‌استارت/دیپلوی)
+      if (err.code === 'account_not_found') {
+        localStorage.removeItem(LS_ACCOUNT);
+        state.accountId = null;
+        state.account = null;
+        state.plan = null;
+        renderAccount();
+        el.checkout.close();
+        toast('حساب شما روی سرور پیدا نشد؛ یک‌بار دوباره وارد شوید.');
+        openLogin('login');
+      } else {
+        toast(err.message);
+      }
     } finally {
       el.pay.disabled = false;
     }
@@ -848,8 +894,12 @@
 
   /** اگر سشن هنوز ساخته نشده (شبکهٔ کند/خطای اولیه)، قبل از هر درخواست بساز */
   let sessionReady = null;
-  async function ensureSession() {
-    if (state.sessionId) return state.sessionId;
+  async function ensureSession(force = false) {
+    if (!force && state.sessionId) return state.sessionId;
+    if (force) {
+      sessionReady = null;
+      state.sessionId = null;
+    }
     if (!sessionReady) {
       sessionReady = startSession(localStorage.getItem(LS_SESSION)).catch((e) => {
         sessionReady = null;
@@ -1531,7 +1581,18 @@
 
     try {
       await ensureSession();
-      await sse('/api/chat', { sessionId: state.sessionId, text: value }, handleEvent);
+      const sendOnce = () => sse('/api/chat', { sessionId: state.sessionId, text: value }, handleEvent);
+      try {
+        await sendOnce();
+      } catch (err) {
+        // سشن سمت سرور نیست (ری‌استارت/دیپلوی): یکی تازه بساز و یک‌بار دیگر بفرست
+        if (err.status === 404 || err.code === 'no_session') {
+          await ensureSession(true);
+          await sendOnce();
+        } else {
+          throw err;
+        }
+      }
     } catch (err) {
       setHero({ pose: 'error', title: 'ارتباط با سرور برقرار نشد', sub: err.message, percent: null });
       toast('ارتباط با سرور برقرار نشد: ' + err.message);

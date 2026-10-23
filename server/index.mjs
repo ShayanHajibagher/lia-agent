@@ -479,6 +479,9 @@ async function routeApi(req, res, url, urlPath) {
             created: false,
           });
         }
+        // حساب ذخیره‌شده در مرورگر بعد از ری‌استارت/دیپلوی وجود ندارد؛
+        // این «خطا» نیست، فقط باید از localStorage پاک شود.
+        return json(res, 200, { account: null, plan: null, created: false, missing: true });
       }
       const { account, created } = createOrGet({ email: body.email, name: body.name });
       logLine('account', 'account', `حساب ${created ? 'ساخته' : 'بازیابی'} شد: ${account.email}`, 'ok');
@@ -504,14 +507,18 @@ async function routeApi(req, res, url, urlPath) {
         payment: result.payment,
       });
     } catch (e) {
-      return json(res, 400, { error: e.message });
+      const missing = /حساب پیدا نشد/.test(e.message);
+      return json(res, missing ? 404 : 400, {
+        error: e.message,
+        ...(missing ? { code: 'account_not_found' } : {}),
+      });
     }
   }
 
   if (urlPath.startsWith('/api/account/') && req.method === 'GET') {
     const id = urlPath.slice('/api/account/'.length);
     const account = getAccount(id);
-    if (!account) return json(res, 404, { error: 'حساب پیدا نشد' });
+    if (!account) return json(res, 404, { error: 'حساب پیدا نشد', code: 'account_not_found' });
     return json(res, 200, { account: publicAccount(account), plan: planStatus(account) });
   }
 

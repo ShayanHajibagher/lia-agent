@@ -604,7 +604,10 @@
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: 'خطای شبکه' }));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      const e = new Error(err.error || `HTTP ${res.status}`);
+      e.status = res.status;
+      e.code = err.code || null;
+      throw e;
     }
     return res.json();
   }
@@ -618,7 +621,10 @@
     });
     if (!res.ok || !res.body) {
       const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      throw new Error(err.error || `HTTP ${res.status}`);
+      const e = new Error(err.error || `HTTP ${res.status}`);
+      e.status = res.status;
+      e.code = err.code || null;
+      throw e;
     }
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -1726,12 +1732,16 @@
 
   // سشن را یک‌بار می‌سازیم و هر درخواستی که زودتر برسد منتظرش می‌ماند
   let bootSession = null;
-  function ensureSession() {
-    if (state.sessionId) return Promise.resolve(state.sessionId);
+  // شناسهٔ ذخیره‌شده ممکن است بعد از ری‌استارت/دیپلوی روی سرور نباشد؛
+  // پس فقط بعد از تأیید سرور به آن اعتماد می‌کنیم.
+  let sessionConfirmed = false;
+  function ensureSession(force = false) {
+    if (!force && sessionConfirmed && state.sessionId) return Promise.resolve(state.sessionId);
     if (!bootSession) {
       bootSession = api('/api/session', { method: 'POST', body: JSON.stringify({ sessionId: state.sessionId }) })
         .then((data) => {
           renderSession(data.state);
+          sessionConfirmed = true;
           if (data.state.deploy) {
             state.lastEvent = 0;
             startPolling();
@@ -1768,10 +1778,22 @@
 
     try {
       await ensureSession();
-      await stream('/api/chat', { sessionId: state.sessionId, text: value }, (ev) => {
-        if (typing.parentNode) typing.remove();
-        handleEvent(ev);
-      });
+      const sendOnce = () =>
+        stream('/api/chat', { sessionId: state.sessionId, text: value }, (ev) => {
+          if (typing.parentNode) typing.remove();
+          handleEvent(ev);
+        });
+      try {
+        await sendOnce();
+      } catch (e) {
+        // سشن سمت سرور نیست (ری‌استارت/دیپلوی): یکی تازه بساز و یک‌بار دیگر بفرست
+        if (e.status === 404 || e.code === 'no_session') {
+          await ensureSession(true);
+          await sendOnce();
+        } else {
+          throw e;
+        }
+      }
     } catch (e) {
       toast('ارتباط با سرور برقرار نشد: ' + e.message);
     } finally {
@@ -2037,9 +2059,16 @@
     if (!accountId) return false;
     try {
       const data = await api('/api/account', { method: 'POST', body: JSON.stringify({ accountId }) });
+      if (!data || data.missing || !data.account) {
+        localStorage.removeItem(LS_ACCOUNT);
+        state.account = null;
+        state.plan = null;
+        refreshAccountChip();
+        return false;
+      }
       state.account = data.account;
       state.plan = data.plan;
-      localStorage.setItem(LS_ACCOUNT, data.account?.id || accountId);
+      localStorage.setItem(LS_ACCOUNT, data.account.id);
       refreshAccountChip();
       return true;
     } catch {
@@ -2150,7 +2179,16 @@
         closeSheet();
         send('پلن را خریدم و فعال شد؛ ادامه بده.');
       } catch (e) {
-        toast(e.message);
+        if (e.code === 'account_not_found') {
+          localStorage.removeItem(LS_ACCOUNT);
+          state.account = null;
+          state.plan = null;
+          refreshAccountChip();
+          closeSheet();
+          toast('حساب شما روی سرور پیدا نشد؛ یک‌بار دوباره وارد شوید.');
+        } else {
+          toast(e.message);
+        }
       }
     });
 
