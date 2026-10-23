@@ -62,10 +62,34 @@
     historySearchInput: $('historySearchInput'),
     historyList: $('historyList'),
     status: $('status'),
+    // Auth & Account Modals
     login: $('loginDialog'),
     loginForm: $('loginForm'),
-    email: $('email'),
-    name: $('name'),
+    loginEmail: $('loginEmail'),
+    loginPassword: $('loginPassword'),
+    loginSubmitBtn: $('loginSubmitBtn'),
+    loginLater: $('loginLater'),
+    loginCloseBtn: $('loginCloseBtn'),
+    authTabLogin: $('authTabLogin'),
+    authTabRegister: $('authTabRegister'),
+    authModalTitle: $('authModalTitle'),
+    registerForm: $('registerForm'),
+    regName: $('regName'),
+    regEmail: $('regEmail'),
+    regPassword: $('regPassword'),
+    regSubmitBtn: $('regSubmitBtn'),
+    regCancelBtn: $('regCancelBtn'),
+    // Profile Dialog
+    profileDialog: $('profileDialog'),
+    profileName: $('profileName'),
+    profileEmail: $('profileEmail'),
+    profileId: $('profileId'),
+    profilePlan: $('profilePlan'),
+    profileBuyBtn: $('profileBuyBtn'),
+    logoutBtn: $('logoutBtn'),
+    profileCloseBtn: $('profileCloseBtn'),
+    profileDoneBtn: $('profileDoneBtn'),
+    // Checkout
     checkout: $('checkoutDialog'),
     plans: $('plans'),
     months: $('months'),
@@ -259,8 +283,8 @@
   function cardPoseHtml(pose = 'idea', badge = '') {
     const src = HERO_IMAGES[pose] || HERO_IMAGES.idea;
     return `
-      <div class="card-pose-art" title="${esc(badge || HERO_BADGES[pose] || 'لیا')}">
-        <img src="${src}" alt="Lia ${esc(pose)}" loading="lazy" />
+      <div class="card-pose-art" title="${esc(badge || HERO_BADGES[pose] || 'لیا')}" style="width:32px;height:32px;flex:0 0 32px;">
+        <img src="${src}" alt="Lia ${esc(pose)}" width="32" height="32" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;" />
       </div>
     `;
   }
@@ -274,8 +298,8 @@
       el.msgs.appendChild(liveActivityNode);
     }
     liveActivityNode.innerHTML = `
-      <div class="activity-pose">
-        <img src="${src}" alt="Lia active" />
+      <div class="activity-pose" style="width:26px;height:26px;flex:0 0 26px;">
+        <img src="${src}" alt="Lia active" width="26" height="26" style="width:100%;height:100%;object-fit:cover;display:block;" />
       </div>
       <div class="activity-meta">
         <div class="activity-title">
@@ -373,7 +397,7 @@
     });
   }
 
-  /* ---------------- حساب و پلن ---------------- */
+  /* ---------------- حساب و احراز هویت ---------------- */
 
   function renderAccount() {
     if (state.account) {
@@ -388,8 +412,8 @@
       }
       el.buyBtn.hidden = false;
     } else {
-      el.accountName.textContent = 'مهمان';
-      el.planBadge.textContent = 'بدون حساب';
+      el.accountName.textContent = 'ورود / عضویت';
+      el.planBadge.textContent = 'مهمان';
       el.planBadge.className = 'badge off';
       el.buyBtn.hidden = true;
     }
@@ -413,18 +437,53 @@
     }
   }
 
-  function openLogin() {
-    el.email.value = state.account?.email || '';
-    el.name.value = state.account?.name || '';
-    el.login.showModal();
+  function openLogin(tab = 'login') {
+    switchAuthTab(tab);
+    if (el.login && !el.login.open) el.login.showModal();
   }
 
-  el.loginForm.addEventListener('submit', async (e) => {
+  function switchAuthTab(tab = 'login') {
+    const isLogin = tab === 'login';
+    el.authTabLogin?.classList.toggle('active', isLogin);
+    el.authTabRegister?.classList.toggle('active', !isLogin);
+    el.loginForm?.classList.toggle('active', isLogin);
+    el.registerForm?.classList.toggle('active', !isLogin);
+    if (el.authModalTitle) {
+      el.authModalTitle.textContent = isLogin ? 'ورود به حساب کاربری لیارا' : 'ساخت حساب کاربری تازه';
+    }
+  }
+
+  function openProfile() {
+    if (!state.account) return openLogin('login');
+    if (el.profileName) el.profileName.textContent = state.account.name || 'کاربر لیارا';
+    if (el.profileEmail) el.profileEmail.textContent = state.account.email || '—';
+    if (el.profileId) el.profileId.textContent = state.account.id || '—';
+    if (el.profilePlan) {
+      el.profilePlan.textContent = state.plan?.active
+        ? `پلن ${state.plan.plan.name} (${faNum(state.plan.daysLeft)} روز اعتبار)`
+        : 'پلن فعالی برای این حساب ثبت نشده است.';
+    }
+    if (el.profileDialog && !el.profileDialog.open) el.profileDialog.showModal();
+  }
+
+  // تب‌های فرم احراز هویت
+  el.authTabLogin?.addEventListener('click', () => switchAuthTab('login'));
+  el.authTabRegister?.addEventListener('click', () => switchAuthTab('register'));
+  el.loginCloseBtn?.addEventListener('click', () => el.login.close());
+  el.loginLater?.addEventListener('click', () => el.login.close());
+  el.regCancelBtn?.addEventListener('click', () => el.login.close());
+
+  // ارسال فرم ورود
+  el.loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const email = el.loginEmail.value.trim();
+    const password = el.loginPassword.value;
+    if (!email || !password) return;
+    if (el.loginSubmitBtn) el.loginSubmitBtn.disabled = true;
     try {
-      const data = await api('/api/account', {
+      const data = await api('/api/account/login', {
         method: 'POST',
-        body: JSON.stringify({ email: el.email.value.trim(), name: el.name.value.trim() }),
+        body: JSON.stringify({ email, password, sessionId: state.sessionId }),
       });
       state.account = data.account;
       state.plan = data.plan;
@@ -432,26 +491,76 @@
       localStorage.setItem(LS_ACCOUNT, state.accountId);
       renderAccount();
       el.login.close();
-      // سشن فعلی را به حساب وصل کن
-      if (state.sessionId) {
-        await api('/api/session', { method: 'POST', body: JSON.stringify({ sessionId: state.sessionId, accountId: state.accountId }) }).catch(() => {});
-      }
       toast('خوش آمدی ' + (state.account.name || state.account.email));
+      await loadHistorySessions();
     } catch (err) {
       toast(err.message);
+    } finally {
+      if (el.loginSubmitBtn) el.loginSubmitBtn.disabled = false;
     }
   });
 
-  $('loginLater').addEventListener('click', () => el.login.close());
-
-  el.accountBtn.addEventListener('click', () => {
-    if (state.account) openCheckout();
-    else openLogin();
+  // ارسال فرم ثبت‌نام
+  el.registerForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = el.regName.value.trim();
+    const email = el.regEmail.value.trim();
+    const password = el.regPassword.value;
+    if (!name || !email || !password) return;
+    if (el.regSubmitBtn) el.regSubmitBtn.disabled = true;
+    try {
+      const data = await api('/api/account/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, sessionId: state.sessionId }),
+      });
+      state.account = data.account;
+      state.plan = data.plan;
+      state.accountId = data.account.id;
+      localStorage.setItem(LS_ACCOUNT, state.accountId);
+      renderAccount();
+      el.login.close();
+      toast('حساب کاربری شما با موفقیت ساخته شد!');
+      await loadHistorySessions();
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      if (el.regSubmitBtn) el.regSubmitBtn.disabled = false;
+    }
   });
+
+  // کلیک روی دکمهٔ حساب کاربری در هدر
+  el.accountBtn?.addEventListener('click', () => {
+    if (state.account) openProfile();
+    else openLogin('login');
+  });
+
+  el.profileBuyBtn?.addEventListener('click', () => {
+    el.profileDialog?.close();
+    openCheckout();
+  });
+  el.profileCloseBtn?.addEventListener('click', () => el.profileDialog?.close());
+  el.profileDoneBtn?.addEventListener('click', () => el.profileDialog?.close());
+
+  // خروج از حساب کاربری
+  el.logoutBtn?.addEventListener('click', async () => {
+    if (!confirm('آیا می‌خواهید از حساب کاربری خود خارج شوید؟')) return;
+    try {
+      await api('/api/account/logout', { method: 'POST', body: JSON.stringify({ sessionId: state.sessionId }) });
+    } catch {}
+    localStorage.removeItem(LS_ACCOUNT);
+    state.accountId = null;
+    state.account = null;
+    state.plan = null;
+    renderAccount();
+    el.profileDialog?.close();
+    toast('از حساب کاربری خارج شدید.');
+    await loadHistorySessions();
+  });
+
   el.buyBtn.addEventListener('click', () => openCheckout());
 
   async function openCheckout() {
-    if (!state.accountId) return openLogin();
+    if (!state.accountId) return openLogin('login');
     try {
       const data = await api('/api/plans');
       state.plans = data.plans || [];
@@ -513,7 +622,7 @@
 
   $('checkoutClose').addEventListener('click', () => el.checkout.close());
 
-  /* ---------------- تاریخچه و سشن‌ها ---------------- */
+  /* ---------------- تاریخچه و سشن‌ها (مخصوص کاربران عضو) ---------------- */
 
   function formatRelativeTime(ts) {
     if (!ts) return '';
@@ -527,8 +636,14 @@
   }
 
   async function loadHistorySessions() {
+    if (!state.accountId) {
+      state.sessions = [];
+      if (el.historyCountBadge) el.historyCountBadge.hidden = true;
+      renderHistoryList([]);
+      return;
+    }
     try {
-      const data = await api('/api/sessions');
+      const data = await api('/api/sessions?accountId=' + encodeURIComponent(state.accountId));
       state.sessions = Array.isArray(data?.sessions) ? data.sessions : [];
       if (el.historyCountBadge) {
         el.historyCountBadge.textContent = state.sessions.length.toLocaleString('fa-IR');
@@ -542,6 +657,28 @@
 
   function renderHistoryList(sessionsToRender) {
     if (!el.historyList) return;
+
+    // اگر کاربر لاگین نیست، قفل دسترسی و بنر احراز هویت را نشان بده
+    if (!state.accountId) {
+      el.historyList.innerHTML = `
+        <div class="history-auth-gate">
+          <div class="history-auth-gate-icon">🔒</div>
+          <div class="history-auth-gate-title">تاریخچه گفتگوها مخصوص کاربران عضو است</div>
+          <div class="history-auth-gate-desc">
+            برای ذخیرهٔ خودکار پیام‌ها، سوابق دیپلوی، کدها و دسترسی دائمی به جلسات کاری خود، وارد حساب کاربری شوید یا حساب تازه بسازید.
+          </div>
+          <button class="btn primary history-auth-gate-btn" id="historyAuthActionBtn" type="button">
+            ورود یا عضویت در حساب کاربری
+          </button>
+        </div>
+      `;
+      el.historyList.querySelector('#historyAuthActionBtn')?.addEventListener('click', () => {
+        closeHistory();
+        openLogin('login');
+      });
+      return;
+    }
+
     const query = (el.historySearchInput?.value || '').trim().toLowerCase();
     const filtered = query
       ? sessionsToRender.filter((s) =>
@@ -555,7 +692,7 @@
     if (!filtered.length) {
       el.historyList.innerHTML = query
         ? '<div class="empty">هیچ گفتگویی با این عبارت پیدا نشد.</div>'
-        : '<div class="empty">هنوز هیچ گفتگویی ثبت نشده است.</div>';
+        : '<div class="empty">هنوز هیچ گفتگویی ثبت نشده است. با ارسال اولین پیام، سشن شما اینجا ذخیره خواهد شد.</div>';
       return;
     }
 
@@ -609,7 +746,7 @@
         const id = btn.dataset.del;
         if (!confirm('آیا این گفتگو و تاریخچهٔ آن حذف شود؟')) return;
         try {
-          await api(`/api/session/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          await api(`/api/session/${encodeURIComponent(id)}?accountId=${encodeURIComponent(state.accountId)}`, { method: 'DELETE' });
           toast('گفتگو با موفقیت حذف شد.');
           if (id === state.sessionId) {
             await startSession(null);
@@ -695,7 +832,8 @@
     try {
       const health = await api('/api/health');
       const info = health.llm || {};
-      el.status.textContent = info.demo ? 'حالت دمو (بدون مدل)' : `مدل: ${info.model}`;
+      state.modelLabel = info.demo ? 'حالت دمو (بدون مدل)' : `مدل: ${info.model}`;
+      el.status.textContent = state.modelLabel;
       el.status.className = 'status ok';
     } catch {
       el.status.textContent = 'سرور در دسترس نیست';
@@ -706,6 +844,20 @@
     await startSession(saved);
     await loadHistorySessions();
     if (!state.accountId) setTimeout(() => openLogin(), 600);
+  }
+
+  /** اگر سشن هنوز ساخته نشده (شبکهٔ کند/خطای اولیه)، قبل از هر درخواست بساز */
+  let sessionReady = null;
+  async function ensureSession() {
+    if (state.sessionId) return state.sessionId;
+    if (!sessionReady) {
+      sessionReady = startSession(localStorage.getItem(LS_SESSION)).catch((e) => {
+        sessionReady = null;
+        throw e;
+      });
+    }
+    await sessionReady;
+    return state.sessionId;
   }
 
   async function startSession(sessionId) {
@@ -737,6 +889,8 @@
       else if (m.kind === 'card' && m.card) {
         if (m.id) state.seen.add(m.id);
         renderCard(m.card);
+      } else if (m.kind === 'tool') {
+        toolChip(m);
       }
     }
     applyState({ mode: s.mode, stage: s.stage, deploy: s.deploy, account: s.account });
@@ -798,7 +952,7 @@
           ${
             isUser
               ? '<span class="avatar-icon">👤</span>'
-              : '<img src="/widget/assets/lia/avatar.webp" alt="لیا" class="msg-avatar-pic" />'
+              : '<img src="/widget/assets/lia/avatar.webp" alt="لیا" class="msg-avatar-pic" width="34" height="34" style="width:34px;height:34px;max-width:34px;max-height:34px;border-radius:50%;object-fit:cover;flex:0 0 34px;display:block;" />'
           }
           <span class="avatar-name">${isUser ? 'شما' : 'لیا'}</span>
           ${!isUser ? '<span class="avatar-tag">دستیار هوشمند ابری</span>' : ''}
@@ -1272,7 +1426,6 @@
   /* ---------------- ابزارها ---------------- */
 
   function toolChip(ev) {
-    const key = ev.name + ':' + (ev.status === 'start' ? Math.random().toString(36).slice(2, 6) : '');
     if (ev.status === 'start') {
       const chip = document.createElement('div');
       chip.className = 'tool';
@@ -1283,9 +1436,13 @@
       scrollEnd();
       return;
     }
-    const chip = state.toolChips.get(ev.name);
+    let chip = state.toolChips.get(ev.name);
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.className = 'tool';
+      el.msgs.appendChild(chip);
+    }
     heroFromTool(ev);
-    if (!chip) return;
     chip.classList.add(ev.status === 'error' ? 'error' : 'done');
     chip.innerHTML = `<span class="spin"></span><span>${esc(ev.label || ev.name)}</span>${ev.summary ? `<span style="opacity:.7">— ${esc(ev.summary)}</span>` : ''}`;
     scrollEnd();
@@ -1329,6 +1486,11 @@
           });
         } else {
           hideLiveActivity();
+          // وضعیت هدر به حالت عادی برگردد (قبلاً روی «در حال فکر کردن» گیر می‌کرد)
+          if (state.modelLabel) {
+            el.status.textContent = state.modelLabel;
+            el.status.className = 'status ok';
+          }
         }
         break;
       case 'navigate':
@@ -1368,6 +1530,7 @@
     });
 
     try {
+      await ensureSession();
       await sse('/api/chat', { sessionId: state.sessionId, text: value }, handleEvent);
     } catch (err) {
       setHero({ pose: 'error', title: 'ارتباط با سرور برقرار نشد', sub: err.message, percent: null });
@@ -1418,6 +1581,12 @@
   async function act(name, payload = {}) {
     if (state.busy) {
       toast('یک کار در جریان است؛ چند لحظه صبر کن.');
+      return;
+    }
+    try {
+      await ensureSession();
+    } catch {
+      toast('اتصال به سرور برقرار نشد؛ یک‌بار دیگر تلاش کن.');
       return;
     }
     state.busy = true;

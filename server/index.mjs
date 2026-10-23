@@ -42,7 +42,7 @@ import { getRun, snapshot, listDeployments, stopDeployment, staticRoot, onRunFin
 import { appFromHost, proxyToApp, previewDomain } from './preview.mjs';
 import { llmInfo, llmStatus, checkProvider } from './llm.mjs';
 import { PLAN_CATALOG } from './plans.mjs';
-import { createOrGet, getAccount, planStatus, publicAccount, purchase, plansList, linkSession } from './account.mjs';
+import { register, login, createOrGet, getAccount, planStatus, publicAccount, purchase, plansList, linkSession } from './account.mjs';
 import { remember as rememberDeployment } from './registry.mjs';
 import { snapshotVersion } from './versions.mjs';
 import { recent, subscribe, logLine } from './bus.mjs';
@@ -421,6 +421,52 @@ async function routeApi(req, res, url, urlPath) {
     return json(res, 200, { plans: plansList(), catalogVersion: PLAN_CATALOG.version });
   }
 
+  if (urlPath === '/api/account/register' && req.method === 'POST') {
+    const body = await readJson(req);
+    try {
+      const account = register({ email: body.email, password: body.password, name: body.name });
+      if (body.sessionId) {
+        const session = getSession(body.sessionId);
+        if (session) linkSession(session, account.id);
+      }
+      logLine('account', 'account', `کاربر جدید ثبت‌نام کرد: ${account.email} (${account.name})`, 'ok');
+      return json(res, 200, {
+        account: publicAccount(account),
+        plan: planStatus(account),
+        created: true,
+      });
+    } catch (e) {
+      return json(res, 400, { error: e.message });
+    }
+  }
+
+  if (urlPath === '/api/account/login' && req.method === 'POST') {
+    const body = await readJson(req);
+    try {
+      const account = login({ email: body.email, password: body.password });
+      if (body.sessionId) {
+        const session = getSession(body.sessionId);
+        if (session) linkSession(session, account.id);
+      }
+      logLine('account', 'account', `ورود کاربر به حساب: ${account.email}`, 'ok');
+      return json(res, 200, {
+        account: publicAccount(account),
+        plan: planStatus(account),
+      });
+    } catch (e) {
+      return json(res, 400, { error: e.message });
+    }
+  }
+
+  if (urlPath === '/api/account/logout' && req.method === 'POST') {
+    const body = await readJson(req);
+    if (body.sessionId) {
+      const session = getSession(body.sessionId);
+      if (session) session.accountId = null;
+    }
+    return json(res, 200, { ok: true });
+  }
+
   if (urlPath === '/api/account' && req.method === 'POST') {
     const body = await readJson(req);
     try {
@@ -469,9 +515,17 @@ async function routeApi(req, res, url, urlPath) {
     return json(res, 200, { account: publicAccount(account), plan: planStatus(account) });
   }
 
-  /* --- سشن و تاریخچه --- */
+  /* --- سشن و تاریخچه (فقط برای کاربران عضو) --- */
   if (urlPath === '/api/sessions' && req.method === 'GET') {
-    return json(res, 200, { sessions: listSessions() });
+    const accountId = url.searchParams.get('accountId');
+    if (!accountId) {
+      return json(res, 200, { sessions: [], requiresAuth: true, message: 'تاریخچهٔ گفتگوها فقط برای کاربران دارای حساب کاربری فعال است' });
+    }
+    const account = getAccount(accountId);
+    if (!account) {
+      return json(res, 200, { sessions: [], requiresAuth: true, message: 'حساب کاربری یافت نشد' });
+    }
+    return json(res, 200, { sessions: listSessions(accountId), requiresAuth: false });
   }
 
   if (urlPath === '/api/session' && req.method === 'POST') {
@@ -479,8 +533,8 @@ async function routeApi(req, res, url, urlPath) {
     let session = getSession(body.sessionId);
     const isNew = !session;
     if (!session) {
-      session = createSession();
-      logLine(session.id, 'session', 'سشن جدید ساخته شد (بدون لاگین)', 'ok');
+      session = createSession({ accountId: body.accountId || null });
+      logLine(session.id, 'session', 'سشن جدید ساخته شد' + (body.accountId ? ` برای کاربر ${body.accountId}` : ''), 'ok');
       await greet(session, () => {});
     }
     if (body.accountId) linkSession(session, body.accountId);
@@ -490,7 +544,8 @@ async function routeApi(req, res, url, urlPath) {
 
   if (urlPath.startsWith('/api/session/') && req.method === 'DELETE') {
     const id = urlPath.slice('/api/session/'.length);
-    const deleted = deleteSession(id);
+    const accountId = url.searchParams.get('accountId') || null;
+    const deleted = deleteSession(id, accountId);
     return json(res, deleted ? 200 : 404, { ok: deleted });
   }
 

@@ -72,9 +72,68 @@ export function planById(id) {
   return PLANS.find((p) => p.id === String(id || '')) || null;
 }
 
-/* ---------------- حساب ---------------- */
+/* ---------------- حساب و احراز هویت ---------------- */
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+function hashPassword(password, salt) {
+  return crypto.scryptSync(String(password), salt, 64).toString('hex');
+}
+
+/** ثبت‌نام کاربر جدید */
+export function register({ email, password, name } = {}) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(cleanEmail)) throw new Error('ایمیل معتبر نیست');
+  const cleanPass = String(password || '');
+  if (cleanPass.length < 4) throw new Error('رمز عبور باید حداقل ۴ نویسه باشد');
+
+  const existing = [...accounts.values()].find((a) => a.email === cleanEmail);
+  if (existing) throw new Error('این ایمیل قبلاً ثبت‌نام شده است. لطفاً وارد شوید.');
+
+  const salt = crypto.randomBytes(16).toString('hex');
+  const passwordHash = hashPassword(cleanPass, salt);
+  const account = {
+    id: 'a_' + crypto.randomBytes(6).toString('hex'),
+    email: cleanEmail,
+    name: String(name || cleanEmail.split('@')[0]).trim().slice(0, 60),
+    salt,
+    passwordHash,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    plan: null,
+    purchases: [],
+  };
+  accounts.set(account.id, account);
+  save();
+  return account;
+}
+
+/** ورود به حساب کاربری با ایمیل و رمز عبور */
+export function login({ email, password } = {}) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail) throw new Error('لطفاً ایمیل خود را وارد کنید');
+  const cleanPass = String(password || '');
+  if (!cleanPass) throw new Error('لطفاً رمز عبور خود را وارد کنید');
+
+  const account = [...accounts.values()].find((a) => a.email === cleanEmail);
+  if (!account) throw new Error('کاربری با این ایمیل یافت نشد. لطفاً ثبت‌نام کنید.');
+
+  if (account.passwordHash && account.salt) {
+    const computed = hashPassword(cleanPass, account.salt);
+    if (computed !== account.passwordHash) {
+      throw new Error('رمز عبور وارد شده نادرست است.');
+    }
+  } else {
+    // کاربر قبلی بدون پسورد بوده؛ پسورد اولیه را تنظیم کن
+    const salt = crypto.randomBytes(16).toString('hex');
+    account.salt = salt;
+    account.passwordHash = hashPassword(cleanPass, salt);
+    save();
+  }
+  account.updatedAt = Date.now();
+  save();
+  return account;
+}
 
 export function createOrGet({ email, name } = {}) {
   const clean = String(email || '').trim().toLowerCase();
@@ -87,6 +146,7 @@ export function createOrGet({ email, name } = {}) {
       email: clean,
       name: String(name || clean.split('@')[0]).slice(0, 60),
       createdAt: Date.now(),
+      updatedAt: Date.now(),
       plan: null,
       purchases: [],
     };
@@ -102,10 +162,16 @@ export function getAccount(id) {
   return accounts.get(String(id || '')) || null;
 }
 
-/** فقط فیلدهای عمومی (بدون تاریخچهٔ خرید کامل) */
+/** فقط فیلدهای عمومی (بدون پسورد و اطلاعات حساس) */
 export function publicAccount(account) {
   if (!account) return null;
-  return { id: account.id, email: account.email, name: account.name, createdAt: account.createdAt };
+  return {
+    id: account.id,
+    email: account.email,
+    name: account.name,
+    createdAt: account.createdAt,
+    hasPassword: !!account.passwordHash,
+  };
 }
 
 export function planStatus(account) {

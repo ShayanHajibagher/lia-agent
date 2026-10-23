@@ -1724,6 +1724,28 @@
 
   /* ---------------- ارسال ---------------- */
 
+  // سشن را یک‌بار می‌سازیم و هر درخواستی که زودتر برسد منتظرش می‌ماند
+  let bootSession = null;
+  function ensureSession() {
+    if (state.sessionId) return Promise.resolve(state.sessionId);
+    if (!bootSession) {
+      bootSession = api('/api/session', { method: 'POST', body: JSON.stringify({ sessionId: state.sessionId }) })
+        .then((data) => {
+          renderSession(data.state);
+          if (data.state.deploy) {
+            state.lastEvent = 0;
+            startPolling();
+          }
+          return state.sessionId;
+        })
+        .catch((e) => {
+          bootSession = null;
+          throw e;
+        });
+    }
+    return bootSession;
+  }
+
   async function doSend(text) {
     const value = String(text || '').trim();
     if (!value) return;
@@ -1745,6 +1767,7 @@
     scrollToEnd();
 
     try {
+      await ensureSession();
       await stream('/api/chat', { sessionId: state.sessionId, text: value }, (ev) => {
         if (typing.parentNode) typing.remove();
         handleEvent(ev);
@@ -2253,15 +2276,8 @@
 
     (async () => {
       try {
-        const data = await api('/api/session', {
-          method: 'POST',
-          body: JSON.stringify({ sessionId: state.sessionId }),
-        });
-        renderSession(data.state);
-        if (data.state.deploy) {
-          state.lastEvent = 0;
-          startPolling();
-        }
+        // همان مسیر مشترک؛ اگر کاربر زودتر پیام بفرستد، درخواست دوباره ساخته نمی‌شود
+        await ensureSession();
       } catch (e) {
         el.status.textContent = 'اتصال به سرور برقرار نشد';
         console.error('Lia boot:', e);

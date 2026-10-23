@@ -34,7 +34,7 @@ function load() {
         s.agent.threadId = null;
         s.agent.status = 'idle';
       }
-      if (Array.isArray(s.messages) && s.messages.length > 120) s.messages = s.messages.slice(-120);
+      if (Array.isArray(s.messages) && s.messages.length > 2000) s.messages = s.messages.slice(-2000);
       sessions.set(s.id, s);
     }
     for (const r of raw.runs || []) runs.set(r.id, r);
@@ -54,9 +54,9 @@ function scheduleSave() {
 export function persistNow() {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    const sessionsOut = [...sessions.values()].slice(-200).map((s) => ({
+    const sessionsOut = [...sessions.values()].map((s) => ({
       ...s,
-      messages: (s.messages || []).slice(-120),
+      messages: s.messages || [],
       // وضعیت موقت ایجنت (تاریخچهٔ ابزارها/حافظهٔ گراف) ذخیره نمی‌شود
       agent: s.agent
         ? { notes: (s.agent.notes || []).slice(-20), status: 'idle', mode: s.agent.mode || null }
@@ -86,6 +86,7 @@ export function createSession(meta = {}) {
     id: 's_' + crypto.randomBytes(8).toString('hex'),
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    accountId: meta.accountId || null,
     mode: 'idle', // idle | choose | guided | auto | agent | chat
     stage: 'greet', // بسته به حالت
     messages: [],
@@ -122,8 +123,9 @@ export function addMessage(session, message) {
     at: Date.now(),
     ...message,
   };
+  session.messages = session.messages || [];
   session.messages.push(msg);
-  if (session.messages.length > 300) session.messages.splice(0, session.messages.length - 300);
+  if (session.messages.length > 2000) session.messages.splice(0, session.messages.length - 2000);
   touch(session);
   return msg;
 }
@@ -139,11 +141,13 @@ export function getRun(id) {
   return runs.get(id) || null;
 }
 
-/* ---------------- فهرست و حذف سشن‌ها (تاریخچه) ---------------- */
+/* ---------------- فهرست و حذف سشن‌ها (تاریخچه مخصوص کاربران عضو) ---------------- */
 
-export function listSessions() {
+export function listSessions(accountId = null) {
+  if (!accountId) return [];
   const list = [];
   for (const s of sessions.values()) {
+    if (s.accountId !== accountId) continue;
     const messages = s.messages || [];
     const firstUserMsg = messages.find((m) => m.role === 'user' && m.kind === 'text');
     const lastMsg = messages[messages.length - 1];
@@ -162,6 +166,7 @@ export function listSessions() {
 
     list.push({
       id: s.id,
+      accountId: s.accountId,
       title,
       appName,
       platform,
@@ -179,12 +184,14 @@ export function listSessions() {
   return list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 }
 
-export function deleteSession(id) {
-  const exists = sessions.has(id);
-  if (exists) {
-    sessions.delete(id);
-    scheduleSave();
+export function deleteSession(id, accountId = null) {
+  const session = sessions.get(id);
+  if (!session) return false;
+  if (accountId && session.accountId && session.accountId !== accountId) {
+    return false;
   }
-  return exists;
+  sessions.delete(id);
+  scheduleSave();
+  return true;
 }
 

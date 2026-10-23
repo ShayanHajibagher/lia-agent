@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>لیا · استودیوی هوشمند وایب‌کدینگ و استقرار لیارا</title>
 <link rel="icon" href="/assets/favicon.ico" />
-<link rel="stylesheet" href="/agent/agent.css" />
+<link rel="stylesheet" href="/agent/agent.css?v=4.0" />
 </head>
 <body>
 <header class="top">
   <div class="brand">
     <div class="brand-avatar-wrap">
-      <img src="/widget/assets/lia/avatar.webp" alt="لیا" class="brand-avatar-img" />
+      <img src="/widget/assets/lia/avatar.webp" alt="لیا" class="brand-avatar-img" width="30" height="30" style="width:100%;height:100%;object-fit:cover;display:block;" />
       <span class="brand-pulse"></span>
     </div>
     <div class="brand-titles">
@@ -55,7 +55,7 @@
     <section class="panel lia-hero-panel" id="liaHero">
       <div class="hero-main">
         <div class="hero-art" id="heroArt">
-          <img id="heroImg" src="/widget/assets/lia/welcome.webp" alt="لیا" />
+          <img id="heroImg" src="/widget/assets/lia/welcome.webp" alt="لیا" width="54" height="54" style="width:100%;height:100%;object-fit:cover;display:block;" />
           <div class="scan"></div>
           <span class="spark s1"></span>
           <span class="spark s2"></span>
@@ -316,18 +316,84 @@
   </div>
 </dialog>
 
-<!-- ورود / ساخت حساب -->
+<!-- ورود / ساخت حساب کاربری -->
 <dialog id="loginDialog">
-  <form id="loginForm" class="dlg">
-    <h3>حساب کاربری لیارا</h3>
-    <p class="muted">با ایمیل وارد شو تا پروژه‌ها و پلن‌هایت ذخیره شوند.</p>
-    <label>ایمیل <input id="email" type="email" required placeholder="you@example.com" dir="ltr" /></label>
-    <label>نام <input id="name" type="text" placeholder="نام تو" /></label>
-    <div class="dlg-actions">
-      <button class="btn primary" type="submit">ورود / ساخت حساب</button>
-      <button class="btn ghost" type="button" id="loginLater">فعلاً بدون حساب</button>
+  <div class="dlg">
+    <div class="dlg-head">
+      <h3 id="authModalTitle">ورود یا عضویت در لیارا</h3>
+      <button class="btn ghost close-btn" id="loginCloseBtn" type="button">✕</button>
     </div>
-  </form>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" id="authTabLogin">ورود به حساب</button>
+      <button type="button" class="auth-tab" id="authTabRegister">ساخت حساب کاربری</button>
+    </div>
+
+    <!-- فرم ورود -->
+    <form id="loginForm" class="auth-panel active">
+      <p class="muted">با حساب کاربری خود وارد شوید تا به تاریخچهٔ کامل پیام‌ها و پروژه‌ها دسترسی داشته باشید:</p>
+      <label>ایمیل
+        <input id="loginEmail" type="email" required placeholder="you@example.com" dir="ltr" autocomplete="email" />
+      </label>
+      <label>رمز عبور
+        <input id="loginPassword" type="password" required placeholder="••••••••" dir="ltr" autocomplete="current-password" />
+      </label>
+      <div class="dlg-actions">
+        <button class="btn primary" type="submit" id="loginSubmitBtn">ورود به حساب</button>
+        <button class="btn ghost" type="button" id="loginLater">فعلاً بدون حساب (مهمان)</button>
+      </div>
+    </form>
+
+    <!-- فرم ثبت‌نام -->
+    <form id="registerForm" class="auth-panel">
+      <p class="muted">یک حساب رایگان بسازید تا گفتگوها، فایل‌ها و استقرارهای ابری شما ذخیره شوند:</p>
+      <label>نام و نام خانوادگی
+        <input id="regName" type="text" required placeholder="مثال: شایان حاجی‌باقر" autocomplete="name" />
+      </label>
+      <label>ایمیل
+        <input id="regEmail" type="email" required placeholder="you@example.com" dir="ltr" autocomplete="email" />
+      </label>
+      <label>رمز عبور
+        <input id="regPassword" type="password" required minlength="4" placeholder="حداقل ۴ نویسه" dir="ltr" autocomplete="new-password" />
+      </label>
+      <div class="dlg-actions">
+        <button class="btn primary" type="submit" id="regSubmitBtn">ساخت حساب کاربری</button>
+        <button class="btn ghost" type="button" id="regCancelBtn">انصراف</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<!-- مدیریت حساب کاربر لاگین‌شده -->
+<dialog id="profileDialog">
+  <div class="dlg">
+    <div class="dlg-head">
+      <h3>پروفایل و حساب کاربری</h3>
+      <button class="btn ghost close-btn" id="profileCloseBtn" type="button">✕</button>
+    </div>
+    <div class="profile-card">
+      <div class="profile-row">
+        <span class="profile-label">نام کاربر:</span>
+        <span class="profile-val" id="profileName">—</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-label">ایمیل:</span>
+        <span class="profile-val" id="profileEmail" dir="ltr">—</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-label">شناسه حساب:</span>
+        <span class="profile-val" id="profileId" dir="ltr" style="font-family:monospace;font-size:11px">—</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-label">وضعیت پلن ابری:</span>
+        <span class="profile-val" id="profilePlan">—</span>
+      </div>
+    </div>
+    <div class="dlg-actions" style="margin-top:10px">
+      <button class="btn primary" id="profileBuyBtn" type="button">خرید یا ارتقای پلن</button>
+      <button class="btn danger" id="logoutBtn" type="button">خروج از حساب</button>
+      <button class="btn ghost" id="profileDoneBtn" type="button">بستن</button>
+    </div>
+  </div>
 </dialog>
 
 <!-- خرید پلن -->
@@ -354,6 +420,6 @@
   </div>
 </dialog>
 
-<script src="/agent/agent.js"></script>
+<script src="/agent/agent.js?v=4.0"></script>
 </body>
 </html>

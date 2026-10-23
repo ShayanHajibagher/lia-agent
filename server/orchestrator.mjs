@@ -1496,6 +1496,6 @@ export function sessionState(session) {
     autoFix: !!session.autoFix,
     llm: { ...llmInfo(), status: llmStatus() },
     catalogVersion: PLAN_CATALOG.version,
-    messages: session.messages.slice(-40),
+    messages: session.messages || [],
   };
 }
