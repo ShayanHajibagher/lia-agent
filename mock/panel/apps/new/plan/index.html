@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>انتخاب پلن — پنل لیارا (جعلی)</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/mock/assets/panel.js"></script>
+<script defer src="/widget/lia.js"></script>
+</head>
+<body><div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">ل</span> لیارا</div>
+      <nav class="nav"><a href="/panel/apps/" class="active"><span class="ico">▣</span>برنامه‌ها</a><a href="/panel/databases/" class=""><span class="ico">⛁</span>دیتابیس‌ها</a><a href="/panel/tickets/" class=""><span class="ico">✉</span>تیکت‌ها</a></nav>
+      <div class="foot">
+        <a href="/">↩ بازگشت به سایت</a>
+        <a href="/mock/">فهرست محیط تست</a>
+        <span>پنل جعلی — فقط برای تست</span>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs"><a href="/panel/apps/">برنامه‌ها</a> / <a href="/panel/apps/new/">ایجاد برنامه</a> / <b>پلن</b></div>
+        <div class="spacer"></div>
+        <div class="user-chip"><span class="avatar">م</span> محمد</div>
+      </header>
+      <div class="content">
+      <div class="stepper"><a class="step done" href="/panel/apps/new/"><span class="num">۱</span>پلتفرم</a><span class="sep"></span><a class="step active" href="/panel/apps/new/plan/"><span class="num">۲</span>پلن</a><span class="sep"></span><a class="step " href="/panel/apps/new/settings/"><span class="num">۳</span>تنظیمات</a></div>
+      <div class="card pad-lg">
+        <div class="page-head">
+          <div>
+            <h1 style="margin-bottom:4px">پلن مناسب کارت را انتخاب کن</h1>
+            <p class="lead">منابع هر پلن: RAM، vCPU و دیسک. پرداخت ساعتی و ماهانه هر دو ممکن است.</p>
+          </div>
+          <div class="spacer"></div>
+          <div class="field" style="margin:0;min-width:170px">
+            <label for="duration">مدت میزبانی</label>
+            <select id="duration">
+              <option value="1">۱ ماه</option>
+              <option value="3">۳ ماه</option>
+              <option value="6">۶ ماه</option>
+              <option value="12">۱۲ ماه</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="plans" style="margin-top:18px">
+          <div class="plan selected" data-plan="earth" data-plan-name="زمین" data-monthly="750000">
+              <span class="tag">پیشنهاد شروع</span>
+              <div class="pname">زمین</div>
+              <div class="price">۷۵۰٬۰۰۰ تومان <small>/ ماه</small></div>
+              <div class="plan-total" style="font-size:12px;color:#667085">جمع: —</div>
+              <div class="specs">
+                <span>RAM ۰.۵۱۲GB</span><span>۰.۵ vCPU</span><span>دیسک ۵GB</span>
+              </div>
+              <div class="specs"><span>ساعتی ۱٬۰۴۱ تومان</span></div>
+            </div><div class="plan " data-plan="mars" data-plan-name="مریخ" data-monthly="1300000">
+              
+              <div class="pname">مریخ</div>
+              <div class="price">۱٬۳۰۰٬۰۰۰ تومان <small>/ ماه</small></div>
+              <div class="plan-total" style="font-size:12px;color:#667085">جمع: —</div>
+              <div class="specs">
+                <span>RAM ۱GB</span><span>۱ vCPU</span><span>دیسک ۱۰GB</span>
+              </div>
+              <div class="specs"><span>ساعتی ۱٬۸۰۵ تومان</span></div>
+            </div><div class="plan " data-plan="jupiter" data-plan-name="مشتری" data-monthly="2300000">
+              
+              <div class="pname">مشتری</div>
+              <div class="price">۲٬۳۰۰٬۰۰۰ تومان <small>/ ماه</small></div>
+              <div class="plan-total" style="font-size:12px;color:#667085">جمع: —</div>
+              <div class="specs">
+                <span>RAM ۲GB</span><span>۱ vCPU</span><span>دیسک ۲۰GB</span>
+              </div>
+              <div class="specs"><span>ساعتی ۳٬۱۹۴ تومان</span></div>
+            </div><div class="plan " data-plan="saturn" data-plan-name="زحل" data-monthly="4125000">
+              
+              <div class="pname">زحل</div>
+              <div class="price">۴٬۱۲۵٬۰۰۰ تومان <small>/ ماه</small></div>
+              <div class="plan-total" style="font-size:12px;color:#667085">جمع: —</div>
+              <div class="specs">
+                <span>RAM ۴GB</span><span>۲ vCPU</span><span>دیسک ۴۰GB</span>
+              </div>
+              <div class="specs"><span>ساعتی ۵٬۷۲۹ تومان</span></div>
+            </div><div class="plan " data-plan="uranus" data-plan-name="اورانوس" data-monthly="7250000">
+              
+              <div class="pname">اورانوس</div>
+              <div class="price">۷٬۲۵۰٬۰۰۰ تومان <small>/ ماه</small></div>
+              <div class="plan-total" style="font-size:12px;color:#667085">جمع: —</div>
+              <div class="specs">
+                <span>RAM ۸GB</span><span>۴ vCPU</span><span>دیسک ۸۰GB</span>
+              </div>
+              <div class="specs"><span>ساعتی ۱۰٬۰۶۹ تومان</span></div>
+            </div><div class="plan " data-plan="neptune" data-plan-name="نپتون" data-monthly="12600000">
+              
+              <div class="pname">نپتون</div>
+              <div class="price">۱۲٬۶۰۰٬۰۰۰ تومان <small>/ ماه</small></div>
+              <div class="plan-total" style="font-size:12px;color:#667085">جمع: —</div>
+              <div class="specs">
+                <span>RAM ۱۶GB</span><span>۸ vCPU</span><span>دیسک ۱۶۰GB</span>
+              </div>
+              <div class="specs"><span>ساعتی ۱۷٬۵۰۰ تومان</span></div>
+            </div><div class="plan " data-plan="pluto" data-plan-name="پلوتون" data-monthly="22000000">
+              
+              <div class="pname">پلوتون</div>
+              <div class="price">۲۲٬۰۰۰٬۰۰۰ تومان <small>/ ماه</small></div>
+              <div class="plan-total" style="font-size:12px;color:#667085">جمع: —</div>
+              <div class="specs">
+                <span>RAM ۳۲GB</span><span>۱۶ vCPU</span><span>دیسک ۳۲۰GB</span>
+              </div>
+              <div class="specs"><span>ساعتی ۳۰٬۵۵۵ تومان</span></div>
+            </div>
+        </div>
+
+        <p class="lead" style="margin-top:14px">انتخاب فعلی: <b id="plan-summary">—</b></p>
+
+        <div class="page-head" style="margin-top:8px">
+          <a class="btn ghost" href="/panel/apps/new/">← مرحلهٔ قبل</a>
+          <div class="spacer"></div>
+          <a class="btn" id="next-step" data-require="plan" href="/panel/apps/new/settings/">ادامه ← تنظیمات</a>
+        </div>
+      </div></div>
+    </main>
+  </div></body>
+</html>

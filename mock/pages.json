@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-10-22T12:02:55.226Z",
+  "pages": [
+    {
+      "route": "/panel/",
+      "title": "خانهٔ پنل",
+      "purpose": "ریشهٔ پنل؛ به فهرست برنامه‌ها هدایت می‌کند (نقطهٔ ورود بعد از ورود).",
+      "selectors": [
+        "a[href=\"/panel/apps/\"]"
+      ]
+    },
+    {
+      "route": "/panel/auth/",
+      "title": "ورود به حساب",
+      "purpose": "صفحهٔ ورود پنل؛ نقطهٔ شروع مسیر کاربر پس از کلیک «ورود یا ثبت‌نام» در سایت.",
+      "selectors": [
+        "input[type=email]",
+        "input[type=password]",
+        "button[type=submit]"
+      ]
+    },
+    {
+      "route": "/panel/apps/",
+      "title": "برنامه‌ها",
+      "purpose": "داشبورد اصلی؛ از اینجا «ایجاد برنامه» شروع می‌شود و برنامه‌های موجود دیده می‌شوند.",
+      "selectors": [
+        "a[href=\"/panel/apps/new/\"]",
+        "table",
+        "tr[data-app]"
+      ]
+    },
+    {
+      "route": "/panel/apps/new/",
+      "title": "ایجاد برنامه — انتخاب پلتفرم",
+      "purpose": "مرحلهٔ ۱ ساخت برنامه: انتخاب پلتفرم (Next.js، Docker، Laravel، ...).",
+      "selectors": [
+        ".platform[data-platform]",
+        "#next-step",
+        ".stepper"
+      ]
+    },
+    {
+      "route": "/panel/apps/new/plan/",
+      "title": "ایجاد برنامه — انتخاب پلن",
+      "purpose": "مرحلهٔ ۲: انتخاب پلن و مدت؛ قیمت ماهانه/ساعتی و جمع دوره همین‌جا محاسبه می‌شود.",
+      "selectors": [
+        "#duration",
+        ".plan[data-plan]",
+        ".plan-total",
+        "#plan-summary",
+        "#next-step"
+      ]
+    },
+    {
+      "route": "/panel/apps/new/settings/",
+      "title": "ایجاد برنامه — تنظیمات نهایی",
+      "purpose": "مرحلهٔ ۳: نام برنامه، پورت، متغیرهای محیطی و دیسک؛ سپس ساخت برنامه.",
+      "selectors": [
+        "#app-name",
+        "#domain-preview",
+        "#env-list",
+        "[data-add-env]",
+        "#next-step"
+      ]
+    },
+    {
+      "route": "/panel/apps/my-shop/",
+      "title": "داشبورد برنامه my-shop",
+      "purpose": "داشبورد یک برنامه؛ وضعیت، منابع، ریلیزها، لاگ‌ها و دکمهٔ «استقرار جدید».",
+      "selectors": [
+        "a[href=\"/panel/apps/my-shop/deploy/\"]",
+        ".tabs button[data-tab]",
+        ".meter",
+        "#app-logs"
+      ]
+    },
+    {
+      "route": "/panel/apps/my-shop/deploy/",
+      "title": "استقرار جدید",
+      "purpose": "آپلود سورس/زیپ و مشاهدهٔ پیشرفت بیلد و لاگ؛ محل شبیه‌سازی خطای بیلد برای تست باگ‌یابی.",
+      "selectors": [
+        "#dropzone",
+        "#start-deploy",
+        "#deploy-progress",
+        "#deploy-logs",
+        "#deploy-status"
+      ]
+    },
+    {
+      "route": "/panel/databases/",
+      "title": "دیتابیس‌ها",
+      "purpose": "فهرست/ساخت دیتابیس؛ برای تست پیشنهاد پلن دیتابیس و اتصال آن به برنامه.",
+      "selectors": [
+        "table",
+        ".btn"
+      ]
+    },
+    {
+      "route": "/panel/tickets/",
+      "title": "تیکت‌ها",
+      "purpose": "پشتیبانی؛ مقصد لینک «ارسال تیکت» در سایت. برای تست ناوبری کافی است.",
+      "selectors": [
+        "textarea"
+      ]
+    }
+  ]
+}

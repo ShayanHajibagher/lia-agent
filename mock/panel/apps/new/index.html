@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ایجاد برنامه — پنل لیارا (جعلی)</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/mock/assets/panel.js"></script>
+<script defer src="/widget/lia.js"></script>
+</head>
+<body><div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">ل</span> لیارا</div>
+      <nav class="nav"><a href="/panel/apps/" class="active"><span class="ico">▣</span>برنامه‌ها</a><a href="/panel/databases/" class=""><span class="ico">⛁</span>دیتابیس‌ها</a><a href="/panel/tickets/" class=""><span class="ico">✉</span>تیکت‌ها</a></nav>
+      <div class="foot">
+        <a href="/">↩ بازگشت به سایت</a>
+        <a href="/mock/">فهرست محیط تست</a>
+        <span>پنل جعلی — فقط برای تست</span>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs"><a href="/panel/apps/">برنامه‌ها</a> / <b>ایجاد برنامه</b></div>
+        <div class="spacer"></div>
+        <div class="user-chip"><span class="avatar">م</span> محمد</div>
+      </header>
+      <div class="content">
+      <div class="stepper"><a class="step active" href="/panel/apps/new/"><span class="num">۱</span>پلتفرم</a><span class="sep"></span><a class="step " href="/panel/apps/new/plan/"><span class="num">۲</span>پلن</a><span class="sep"></span><a class="step " href="/panel/apps/new/settings/"><span class="num">۳</span>تنظیمات</a></div>
+      <div class="card pad-lg">
+        <h1 style="margin-bottom:4px">برنامه‌ات با چه چیزی ساخته شده؟</h1>
+        <p class="lead">پلتفرم را انتخاب کن؛ لیارا محیط اجرا و بیلد را بر همین اساس آماده می‌کند.</p>
+        <div class="platforms" style="margin-top:18px">
+          <div class="platform" data-platform="nextjs">
+              <div class="icon">▲</div>
+              <div class="name">Next.js</div>
+              <div class="hint">SSR / SSG</div>
+            </div><div class="platform" data-platform="nodejs">
+              <div class="icon">⬢</div>
+              <div class="name">NodeJS</div>
+              <div class="hint">Express / NestJS</div>
+            </div><div class="platform" data-platform="docker">
+              <div class="icon">🐳</div>
+              <div class="name">Docker</div>
+              <div class="hint">هر زبان و فریم‌ورک</div>
+            </div><div class="platform" data-platform="laravel">
+              <div class="icon">🅛</div>
+              <div class="name">Laravel</div>
+              <div class="hint">PHP</div>
+            </div><div class="platform" data-platform="django">
+              <div class="icon">🐍</div>
+              <div class="name">Django</div>
+              <div class="hint">Python</div>
+            </div><div class="platform" data-platform="flask">
+              <div class="icon">🧪</div>
+              <div class="name">Flask</div>
+              <div class="hint">Python</div>
+            </div><div class="platform" data-platform="react">
+              <div class="icon">⚛</div>
+              <div class="name">React</div>
+              <div class="hint">SPA</div>
+            </div><div class="platform" data-platform="vue">
+              <div class="icon">🟩</div>
+              <div class="name">VueJS</div>
+              <div class="hint">SPA</div>
+            </div><div class="platform" data-platform="angular">
+              <div class="icon">🅰</div>
+              <div class="name">Angular</div>
+              <div class="hint">SPA</div>
+            </div><div class="platform" data-platform="static">
+              <div class="icon">📄</div>
+              <div class="name">Static</div>
+              <div class="hint">html / css / js</div>
+            </div><div class="platform" data-platform="go">
+              <div class="icon">🐹</div>
+              <div class="name">Golang</div>
+              <div class="hint">Go</div>
+            </div><div class="platform" data-platform="dotnet">
+              <div class="icon">🟣</div>
+              <div class="name">ASP.NET Core</div>
+              <div class="hint">.NET</div>
+            </div>
+        </div>
+        <div class="page-head" style="margin-top:20px">
+          <a class="btn ghost" href="/panel/apps/">انصراف</a>
+          <div class="spacer"></div>
+          <a class="btn" id="next-step" data-require="platform" href="/panel/apps/new/plan/">ادامه ← انتخاب پلن</a>
+        </div>
+      </div></div>
+    </main>
+  </div></body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محیط تست لیا</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/widget/lia.js"></script>
+<style>
+  .hero {
+    background: radial-gradient(800px 340px at 80% -20%, #0d3b36 0%, #0d1117 62%);
+    color: #e8eef2;
+    border-radius: 18px;
+    padding: 30px 26px;
+  }
+  .hero h1 { font-size: 26px; margin: 0 0 6px; }
+  .hero p { margin: 0; color: #a9b6c0; }
+  .hero .pill {
+    display: inline-block;
+    margin-top: 14px;
+    background: #87fcc4;
+    color: #06251d;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+  .link-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 13px 15px;
+    background: #fff;
+    color: var(--text);
+    box-shadow: var(--shadow);
+  }
+  .link-card:hover { border-color: #b3e6e0; background: #fbfefd; }
+  .link-card b { font-weight: 700; }
+  .link-card code { font-size: 11px; color: var(--muted); direction: ltr; text-align: left; }
+  .link-card span { font-size: 12px; color: var(--muted); }
+  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .note { border-inline-start: 3px solid var(--brand); }
+  main.wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; display: flex; flex-direction: column; gap: 22px; }
+  h2.sec { font-size: 16px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <section class="hero">
+    <h1>محیط تست لیا</h1>
+    <p>آینهٔ سایت لیارا + پنل جعلی، برای تست ویجت و جریان دیپلوی بدون تماس با سرویس واقعی.</p>
+    <span class="pill">فقط محلی — 127.0.0.1</span>
+  </section>
+
+  <section class="card note">
+    <h2 class="sec">این محیط چه چیزهایی دارد؟</h2>
+    <p class="sub" style="margin-bottom:8px">
+      صفحه‌های عمومی سایت لیارا عیناً دانلود شده‌اند (HTML/CSS/فونت/تصویر) و مسیر دارایی‌ها حفظ شده است.
+      پنل (<code dir="ltr">console.liara.ir</code>) پشت لاگین است و قابل آینه‌کردن نبود؛ صفحه‌های آن بازسازی شده‌اند تا
+      مسیر «ساخت برنامه → انتخاب پلتفرم → انتخاب پلن → تنظیمات → استقرار» قابل کلیک و تست باشد.
+    </p>
+    <p class="sub" style="margin:0">
+      لینک‌های پنل داخل صفحه‌های آینه‌شده به همین پنل جعلی اشاره می‌کنند. اجرا: <code dir="ltr">node tools/serve.mjs</code>
+    </p>
+  </section>
+
+  <section>
+    <h2 class="sec">۱) صفحه‌های آینه‌شدهٔ liara.ir</h2>
+    <p class="sub">محتوای واقعی سایت؛ ویجت لیا بعداً روی همین‌ها سوار می‌شود.</p>
+    <div class="list">
+      <a class="link-card" href="/"><b>صفحهٔ اصلی</b><span>معرفی محصول، ناوبری، CTA</span><code>/</code></a>
+      <a class="link-card" href="/pricing/"><b>قیمت‌ها</b><span>پلن‌های PaaS/DBaaS/IaaS و تعرفهٔ ترافیک</span><code>/pricing/</code></a>
+      <a class="link-card" href="/products/cloud-host/"><b>هاست ابری ساعتی</b><span>پلن‌ها و منابع سخت‌افزاری</span><code>/products/cloud-host/</code></a>
+      <a class="link-card" href="/products/cloud-database/"><b>دیتابیس ابری</b><span>DBaaS و پلن‌ها</span><code>/products/cloud-database/</code></a>
+      <a class="link-card" href="/products/free-cloud-host/"><b>هاست رایگان</b><span>شروع رایگان و محدودیت‌ها</span><code>/products/free-cloud-host/</code></a>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">۲) پنل جعلی (بازسازی‌شدهٔ console.liara.ir)</h2>
+    <p class="sub">هر مرحله یک صفحهٔ مستقل است تا «آگاهی از صفحه» و هایلایت کردن هدف تست شود.</p>
+    <div class="list">
+      <a class="link-card" href="/panel/auth/"><b>ورود</b><span>فرم ورود ساختگی</span><code>/panel/auth/</code></a>
+      <a class="link-card" href="/panel/apps/"><b>برنامه‌ها</b><span>لیست برنامه‌ها + دکمهٔ ایجاد</span><code>/panel/apps/</code></a>
+      <a class="link-card" href="/panel/apps/new/"><b>ایجاد برنامه — پلتفرم</b><span>مرحله ۱</span><code>/panel/apps/new/</code></a>
+      <a class="link-card" href="/panel/apps/new/plan/"><b>ایجاد برنامه — پلن</b><span>مرحله ۲ با قیمت‌های واقعی</span><code>/panel/apps/new/plan/</code></a>
+      <a class="link-card" href="/panel/apps/new/settings/"><b>ایجاد برنامه — تنظیمات</b><span>مرحله ۳: نام، پورت، env</span><code>/panel/apps/new/settings/</code></a>
+      <a class="link-card" href="/panel/apps/my-shop/"><b>داشبورد برنامه</b><span>منابع، ریلیزها، لاگ‌ها، متغیرها</span><code>/panel/apps/my-shop/</code></a>
+      <a class="link-card" href="/panel/apps/my-shop/deploy/"><b>استقرار جدید</b><span>آپلود + پیشرفت + لاگ بیلد (با خطای نمونه)</span><code>/panel/apps/my-shop/deploy/</code></a>
+      <a class="link-card" href="/panel/databases/"><b>دیتابیس‌ها</b><span>لیست و ساخت دیتابیس</span><code>/panel/databases/</code></a>
+      <a class="link-card" href="/panel/tickets/"><b>تیکت‌ها</b><span>فرم پشتیبانی</span><code>/panel/tickets/</code></a>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">۳) پروژه‌های نمونهٔ تست</h2>
+    <p class="sub">برای آپلود در چت لیا. هر کدام یک حالت را پوشش می‌دهد (سالم، باگ‌دار، نامناسب، …).</p>
+    <div class="list">
+      <a class="link-card" href="/test-projects/dist/nextjs-shop.zip"><b>فروشگاه Next.js</b><span>وب مناسب، با چند باگ رایج</span><code>nextjs-shop.zip</code></a>
+      <a class="link-card" href="/test-projects/dist/static-portfolio.zip"><b>سایت استاتیک</b><span>مناسب، پیشنهاد سرو استاتیک</span><code>static-portfolio.zip</code></a>
+      <a class="link-card" href="/test-projects/dist/telegram-bot.zip"><b>ربات تلگرام</b><span>نامناسب برای هاست وب → مناسب‌سازی</span><code>telegram-bot.zip</code></a>
+      <a class="link-card" href="/test-projects/dist/cli-json-tool.zip"><b>ابزار CLI</b><span>نامناسب → لایهٔ وب</span><code>cli-json-tool.zip</code></a>
+      <a class="link-card" href="/test-projects/dist/python-scraper.zip"><b>اسکریپت پایتون</b><span>نامناسب → سرور HTTP</span><code>python-scraper.zip</code></a>
+      <a class="link-card" href="/test-projects/dist/laravel-api.zip"><b>API لاراول</b><span>وب با دیتابیس</span><code>laravel-api.zip</code></a>
+      <a class="link-card" href="/test-projects/dist/not-an-app.zip"><b>zip بی‌ربط</b><span>سورس برنامه نیست → سؤال می‌پرسد</span><code>not-an-app.zip</code></a>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">۴) ایجنت لیا</h2>
+    <p class="sub">ویجت روی همهٔ صفحه‌ها سوار شده است؛ دکمهٔ دایره‌ای گوشهٔ راست پایین صفحه.</p>
+    <div class="list">
+      <a class="link-card" href="/api/health"><b>سلامت ایجنت</b><span>وضعیت API و حالت مدل زبانی</span><code>/api/health</code></a>
+      <a class="link-card" href="/pricing/?lia=open"><b>تست روی صفحهٔ قیمت‌ها</b><span>باز شدن خودکار سایدبار</span><code>/pricing/?lia=open</code></a>
+      <a class="link-card" href="/panel/apps/new/plan/?lia=open"><b>تست راهنما در پنل</b><span>هایلایت مرحلهٔ انتخاب پلن</span><code>/panel/apps/new/plan/</code></a>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">۵) فهرست ماشین‌خوان</h2>
+    <p class="sub">برای اسکریپت‌های ایجنت و تست خودکار.</p>
+    <div class="list">
+      <a class="link-card" href="/mock/pages.json"><b>pages.json</b><span>مسیر، عنوان، هدف و سلکتورهای مهم هر صفحه</span><code>/mock/pages.json</code></a>
+      <a class="link-card" href="/mirror-manifest.json"><b>mirror-manifest.json</b><span>گزارش آخرین میرور (تعداد فایل، خطاها)</span><code>/mirror-manifest.json</code></a>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="sec">قدم بعدی</h2>
+    <p class="sub" style="margin:0">
+      ویجت لیا (دکمهٔ شناور + سایدبار چت) روی همین صفحه‌ها سوار می‌شود. میزبان تست مسیر صفحه را در
+      <code dir="ltr">window.__LIA_HOST__</code> و پنل جعلی وضعیت انتخاب‌ها را در
+      <code dir="ltr">window.__LIA_PANEL__</code> اعلام می‌کند؛ همان چیزی که «آگاهی از صفحه» به آن تکیه می‌کند.
+    </p>
+  </section>
+
+</main>
+</body>
+</html>

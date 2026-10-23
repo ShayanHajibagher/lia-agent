@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>لیا · بخش ایجنت</title>
+<link rel="icon" href="/assets/favicon.ico" />
+<link rel="stylesheet" href="/agent/agent.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo">لیا</span>
+    <span class="tag">بخش ایجنت</span>
+  </div>
+
+  <div class="who">
+    <button id="accountBtn" class="account" title="حساب من">
+      <span id="accountName">مهمان</span>
+      <span id="planBadge" class="badge off">بدون پلن</span>
+    </button>
+    <button id="buyBtn" class="btn ghost">خرید پلن</button>
+  </div>
+
+  <div class="right">
+    <span id="status" class="status">در حال اتصال…</span>
+    <a class="btn ghost" href="/" target="_blank" rel="noopener">سایت</a>
+    <a class="btn ghost" href="/panel/" target="_blank" rel="noopener">پنل</a>
+    <button id="newChat" class="btn">گفتگوی تازه</button>
+  </div>
+</header>
+
+<main>
+  <aside class="side">
+    <section class="panel">
+      <div class="panel-head">
+        <h3>پروژه</h3>
+        <button id="uploadBtn" class="mini">آپلود zip</button>
+        <input id="fileInput" type="file" accept=".zip" hidden />
+      </div>
+      <div id="files" class="files"><div class="empty">هنوز پروژه‌ای آپلود نشده</div></div>
+      <div class="panel-foot">
+        <a id="downloadLink" class="mini disabled" href="#" download>دانلود نسخهٔ کاری</a>
+      </div>
+    </section>
+
+    <section class="panel" id="deployPanel" hidden>
+      <div class="panel-head">
+        <h3>دیپلوی</h3>
+        <span id="deployStatus" class="badge">—</span>
+      </div>
+      <div class="progress"><div id="deployBar"></div></div>
+      <div id="deploySteps" class="steps"></div>
+      <pre id="deployLogs" class="logs"></pre>
+    </section>
+  </aside>
+
+  <section class="chat">
+    <div id="msgs" class="msgs"></div>
+    <form id="composer" class="composer">
+      <textarea id="input" rows="1" placeholder="مثلاً: یک فروشگاه Next.js بساز، باگ‌هایش را رفع کن و دیپلوی کن…"></textarea>
+      <button id="send" class="btn primary" type="submit">ارسال</button>
+    </form>
+    <div class="hint">
+      Enter ارسال · Shift+Enter خط جدید · کارهای حساس فقط با اجازهٔ تو اجرا می‌شوند
+    </div>
+  </section>
+</main>
+
+<!-- ورود / ساخت حساب -->
+<dialog id="loginDialog">
+  <form id="loginForm" class="dlg">
+    <h3>حساب لیا</h3>
+    <p class="muted">با ایمیل وارد شو تا پلن و پروژه‌هایت به گفتگو وصل شوند.</p>
+    <label>ایمیل <input id="email" type="email" required placeholder="you@example.com" dir="ltr" /></label>
+    <label>نام <input id="name" type="text" placeholder="نام تو" /></label>
+    <div class="dlg-actions">
+      <button class="btn primary" type="submit">ورود / ساخت حساب</button>
+      <button class="btn ghost" type="button" id="loginLater">فعلاً بدون حساب</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- خرید پلن -->
+<dialog id="checkoutDialog">
+  <div class="dlg wide">
+    <h3>خرید پلن</h3>
+    <p class="muted">پرداخت در این نسخه شبیه‌سازی شده است؛ قرارداد API آن در README-API.md آمده.</p>
+    <div id="plans" class="plans"></div>
+    <div class="dlg-row">
+      <label>مدت
+        <select id="months">
+          <option value="1">۱ ماه</option>
+          <option value="3" selected>۳ ماه</option>
+          <option value="6">۶ ماه</option>
+          <option value="12">۱۲ ماه</option>
+        </select>
+      </label>
+      <div class="total">جمع: <b id="total">—</b></div>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn primary" id="payBtn" type="button">پرداخت و فعال‌سازی</button>
+      <button class="btn ghost" id="checkoutClose" type="button">بستن</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- نمایش فایل -->
+<dialog id="fileDialog">
+  <div class="dlg wide">
+    <div class="dlg-head">
+      <h3 id="fileName">فایل</h3>
+      <button class="btn ghost" id="fileClose" type="button">بستن</button>
+    </div>
+    <pre id="fileBody" class="file-body"></pre>
+  </div>
+</dialog>
+
+<script src="/agent/agent.js"></script>
+</body>
+</html>

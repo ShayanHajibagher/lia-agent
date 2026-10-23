@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-10-22T18:57:55.192Z",
+  "origin": "https://liara.ir",
+  "fixOnly": true,
+  "pages": [
+    "/",
+    "/pricing/",
+    "/products/cloud-host/",
+    "/products/cloud-database/",
+    "/products/free-cloud-host/"
+  ],
+  "htmlPages": 220,
+  "files": 0,
+  "bytes": 0,
+  "pagesFixed": 220,
+  "failures": []
+}

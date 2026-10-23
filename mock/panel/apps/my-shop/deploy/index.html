@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>استقرار — پنل لیارا (جعلی)</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/mock/assets/panel.js"></script>
+<script defer src="/widget/lia.js"></script>
+</head>
+<body><div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">ل</span> لیارا</div>
+      <nav class="nav"><a href="/panel/apps/" class="active"><span class="ico">▣</span>برنامه‌ها</a><a href="/panel/databases/" class=""><span class="ico">⛁</span>دیتابیس‌ها</a><a href="/panel/tickets/" class=""><span class="ico">✉</span>تیکت‌ها</a></nav>
+      <div class="foot">
+        <a href="/">↩ بازگشت به سایت</a>
+        <a href="/mock/">فهرست محیط تست</a>
+        <span>پنل جعلی — فقط برای تست</span>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs"><a href="/panel/apps/">برنامه‌ها</a> / <a href="/panel/apps/my-shop/">my-shop</a> / <b>استقرار</b></div>
+        <div class="spacer"></div>
+        <div class="user-chip"><span class="avatar">م</span> محمد</div>
+      </header>
+      <div class="content">
+      <div class="page-head">
+        <div><h1>استقرار جدید</h1><p class="lead">سورس پروژه را آپلود کن یا از گیت‌هاب وصل کن.</p></div>
+        <div class="spacer"></div>
+        <span id="deploy-status"><span class="badge">آماده</span></span>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="card pad-lg">
+          <div class="dropzone" id="dropzone">
+            <div style="font-size:26px">📦</div>
+            <p style="margin:8px 0 4px"><b>فایل zip پروژه را اینجا رها کن</b></p>
+            <p style="margin:0;font-size:12px">یا کلیک کن (در محیط تست، فایل واقعی آپلود نمی‌شود)</p>
+          </div>
+          <p id="file-name" style="margin-top:12px"></p>
+          <button class="btn" id="start-deploy" disabled style="width:100%;justify-content:center">شروع استقرار</button>
+        </div>
+
+        <div class="card pad-lg">
+          <h2 style="margin-bottom:10px">پیشرفت</h2>
+          <div class="meter" id="deploy-progress"><i style="width:0%"></i></div>
+          <div class="logs" id="deploy-logs" style="margin-top:12px"><span class="dim">در انتظار شروع…</span></div>
+        </div>
+      </div></div>
+    </main>
+  </div></body>
+</html>

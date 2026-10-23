@@ -1,0 +1,790 @@
+/* panel.css — ظاهر پنل جعلی لیارا برای محیط تست
+   رنگ و فونت از خود سایت لیارا گرفته شده (yekan + سبز/فیروزه‌ای برند). */
+
+@font-face {
+  font-family: 'yekan';
+  src: url('/mock/assets/fonts/yekan-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'yekan';
+  src: url('/mock/assets/fonts/yekan-600.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'yekan';
+  src: url('/mock/assets/fonts/yekan-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'yekan';
+  src: url('/mock/assets/fonts/yekan-800.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  --brand: #009689;
+  --brand-dark: #007d72;
+  --brand-soft: #e6f7f4;
+  --mint: #87fcc4;
+  --ink: #0d1117;
+  --text: #1f2933;
+  --muted: #667085;
+  --line: #e4e7ec;
+  --bg: #f6f8fa;
+  --card: #ffffff;
+  --danger: #d92d20;
+  --warn: #b54708;
+  --ok: #067647;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.04);
+  --sidebar: 248px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'yekan', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+a {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar) 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- سایدبار ---------- */
+.sidebar {
+  background: #fff;
+  border-left: 1px solid var(--line);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 14px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.brand .logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(140deg, var(--brand), #35d0c0);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 15px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.nav a:hover {
+  background: var(--bg);
+}
+
+.nav a.active {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+.nav a .ico {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+.sidebar .foot {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ---------- محتوا ---------- */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  height: 62px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.crumbs {
+  color: var(--muted);
+  font-size: 13px;
+}
+.crumbs b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.topbar .spacer {
+  flex: 1;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px 5px 6px;
+  font-size: 13px;
+}
+.user-chip .avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1180px;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0;
+  font-weight: 800;
+}
+h2 {
+  font-size: 17px;
+  margin: 0;
+  font-weight: 700;
+}
+p.lead {
+  margin: 0;
+  color: var(--muted);
+}
+
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.page-head .spacer {
+  flex: 1;
+}
+
+/* ---------- کارت ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+.card.pad-lg {
+  padding: 24px;
+}
+.card h2 + p {
+  margin-top: 4px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+.grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.grid.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* ---------- دکمه ---------- */
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--brand);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+.btn:hover {
+  background: var(--brand-dark);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.req-hint {
+  font-size: 11.5px;
+  color: var(--warn);
+  margin-inline-end: 8px;
+}
+.btn.ghost {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--text);
+}
+.btn.ghost:hover {
+  background: var(--bg);
+}
+.btn.danger {
+  background: #fff;
+  border-color: #fecdca;
+  color: var(--danger);
+}
+.btn.sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* ---------- برچسب ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.badge.ok {
+  background: #ecfdf3;
+  color: var(--ok);
+  border-color: #abefc6;
+}
+.badge.warn {
+  background: #fffaeb;
+  color: var(--warn);
+  border-color: #fedf89;
+}
+.badge.err {
+  background: #fef3f2;
+  color: var(--danger);
+  border-color: #fecdca;
+}
+.badge.brand {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  border-color: #b3e6e0;
+}
+
+/* ---------- استپر ---------- */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.stepper .step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+}
+.stepper .step .num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  background: #fff;
+}
+.stepper .step.active {
+  color: var(--brand-dark);
+}
+.stepper .step.active .num {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.stepper .step.done .num {
+  background: var(--brand-soft);
+  border-color: #b3e6e0;
+  color: var(--brand-dark);
+}
+.stepper .sep {
+  width: 26px;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ---------- انتخاب پلتفرم ---------- */
+.platforms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.platform {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.platform:hover {
+  border-color: #b3e6e0;
+  background: #fbfefd;
+}
+.platform.selected {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: 0 0 0 1px var(--brand) inset;
+}
+.platform .icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+}
+.platform .name {
+  font-weight: 700;
+}
+.platform .hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- پلن ---------- */
+.plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 12px;
+}
+.plan {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.plan:hover {
+  border-color: #b3e6e0;
+}
+.plan.selected {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px var(--brand) inset;
+  background: #fbfefd;
+}
+.plan .pname {
+  font-weight: 800;
+  font-size: 15px;
+}
+.plan .price {
+  font-weight: 800;
+  color: var(--brand-dark);
+  font-size: 15px;
+}
+.plan .price small {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 11px;
+}
+.plan .specs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+.plan .tag {
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- فرم ---------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.field label {
+  font-weight: 600;
+  font-size: 13px;
+}
+.field .help {
+  font-size: 12px;
+  color: var(--muted);
+}
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+select,
+textarea {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  width: 100%;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #b3e6e0;
+  border-color: var(--brand);
+}
+.input-group {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+.input-group:focus-within {
+  outline: 2px solid #b3e6e0;
+  border-color: var(--brand);
+}
+.input-group input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.input-group input:focus {
+  outline: 0;
+}
+.input-group .suffix {
+  display: grid;
+  place-items: center;
+  padding: 0 12px;
+  background: var(--bg);
+  border-inline-start: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  direction: ltr;
+  white-space: nowrap;
+}
+
+.env-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 36px;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* ---------- جدول ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th,
+td {
+  text-align: right;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  background: #fcfcfd;
+}
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+tr:hover td {
+  background: #fcfcfd;
+}
+
+/* ---------- ترمینال لاگ ---------- */
+.logs {
+  background: #0d1117;
+  color: #d6e2ea;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.9;
+  direction: ltr;
+  text-align: left;
+  max-height: 320px;
+  overflow: auto;
+  min-height: 120px;
+}
+.logs .ok {
+  color: #7ee2b8;
+}
+.logs .err {
+  color: #ff9b9b;
+}
+.logs .dim {
+  color: #7d8b96;
+}
+
+/* ---------- آپلود ---------- */
+.dropzone {
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  padding: 34px 18px;
+  text-align: center;
+  color: var(--muted);
+  background: #fcfcfd;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dropzone:hover,
+.dropzone.drag {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  border: 1px solid #b3e6e0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------- استاتوس/متر ---------- */
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat .k {
+  font-size: 12px;
+  color: var(--muted);
+}
+.stat .v {
+  font-weight: 700;
+}
+.meter {
+  height: 7px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.meter > i {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  border-radius: 999px;
+}
+
+/* ---------- تب ---------- */
+.tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.tabs button {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+.tabs button.active {
+  color: var(--brand-dark);
+  border-bottom-color: var(--brand);
+}
+.tabpane[hidden] {
+  display: none;
+}
+
+/* ---------- ورود ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(1000px 500px at 70% -10%, #e6f7f4 0%, var(--bg) 55%);
+  padding: 24px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* ---------- ریسپانسیو ---------- */
+@media (max-width: 900px) {
+  body {
+    overflow-x: hidden;
+  }
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .main,
+  .content,
+  .card {
+    min-width: 0;
+  }
+  .content > * {
+    min-width: 0;
+  }
+  .card {
+    overflow-x: auto;
+  }
+  table {
+    min-width: 460px;
+  }
+  .sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 12px;
+  }
+  .sidebar .brand {
+    border: 0;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+  .nav {
+    flex-direction: row;
+  }
+  .nav a {
+    white-space: nowrap;
+  }
+  .nav a.active,
+  .nav a {
+    padding: 8px 10px;
+  }
+  .sidebar .foot {
+    display: none;
+  }
+  .topbar {
+    height: auto;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .grid.cols-2,
+  .grid.cols-3,
+  .grid.cols-4 {
+    grid-template-columns: 1fr;
+  }
+  .content {
+    padding: 16px;
+  }
+  .page-head h1 {
+    font-size: 19px;
+  }
+}

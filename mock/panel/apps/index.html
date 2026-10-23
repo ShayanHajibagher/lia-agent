@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>برنامه‌ها — پنل لیارا (جعلی)</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/mock/assets/panel.js"></script>
+<script defer src="/widget/lia.js"></script>
+</head>
+<body><div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">ل</span> لیارا</div>
+      <nav class="nav"><a href="/panel/apps/" class="active"><span class="ico">▣</span>برنامه‌ها</a><a href="/panel/databases/" class=""><span class="ico">⛁</span>دیتابیس‌ها</a><a href="/panel/tickets/" class=""><span class="ico">✉</span>تیکت‌ها</a></nav>
+      <div class="foot">
+        <a href="/">↩ بازگشت به سایت</a>
+        <a href="/mock/">فهرست محیط تست</a>
+        <span>پنل جعلی — فقط برای تست</span>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs"><b>برنامه‌ها</b></div>
+        <div class="spacer"></div>
+        <div class="user-chip"><span class="avatar">م</span> محمد</div>
+      </header>
+      <div class="content">
+      <div class="page-head">
+        <div>
+          <h1>برنامه‌ها</h1>
+          <p class="lead">برنامه‌های میزبانی‌شده روی پلتفرم لیارا</p>
+        </div>
+        <div class="spacer"></div>
+        <a class="btn" href="/panel/apps/new/">＋ ایجاد برنامه</a>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead>
+            <tr><th>نام</th><th>پلتفرم</th><th>پلن</th><th>وضعیت</th><th>دامنه</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr data-app="my-shop">
+              <td><a href="/panel/apps/my-shop/"><b>my-shop</b></a></td>
+              <td>Next.js</td>
+              <td>زمین</td>
+              <td><span class="badge ok">فعال</span></td>
+              <td dir="ltr" style="text-align:left">my-shop.liara.run</td>
+              <td><a class="btn ghost sm" href="/panel/apps/my-shop/">مدیریت</a></td>
+            </tr>
+            <tr data-app="api-bot">
+              <td><a href="/panel/apps/api-bot/"><b>api-bot</b></a></td>
+              <td>NodeJS</td>
+              <td>مریخ</td>
+              <td><span class="badge warn">متوقف</span></td>
+              <td dir="ltr" style="text-align:left">api-bot.liara.run</td>
+              <td><a class="btn ghost sm" href="/panel/apps/api-bot/">مدیریت</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>چرا این صفحه در محیط تست هست؟</h2>
+        <p class="lead">لیا در حالت راهنما باید بتواند کاربر را از همین صفحه به «ایجاد برنامه» و بعد به انتخاب پلتفرم و پلن هدایت کند. هر مرحله یک صفحهٔ مستقل است تا «آگاهی از صفحه» و هایلایت کردن هدف قابل تست باشد.</p>
+      </div></div>
+    </main>
+  </div></body>
+</html>

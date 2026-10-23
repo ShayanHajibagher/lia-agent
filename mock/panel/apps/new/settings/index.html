@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تنظیمات برنامه — پنل لیارا (جعلی)</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/mock/assets/panel.js"></script>
+<script defer src="/widget/lia.js"></script>
+</head>
+<body><div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">ل</span> لیارا</div>
+      <nav class="nav"><a href="/panel/apps/" class="active"><span class="ico">▣</span>برنامه‌ها</a><a href="/panel/databases/" class=""><span class="ico">⛁</span>دیتابیس‌ها</a><a href="/panel/tickets/" class=""><span class="ico">✉</span>تیکت‌ها</a></nav>
+      <div class="foot">
+        <a href="/">↩ بازگشت به سایت</a>
+        <a href="/mock/">فهرست محیط تست</a>
+        <span>پنل جعلی — فقط برای تست</span>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs"><a href="/panel/apps/">برنامه‌ها</a> / <a href="/panel/apps/new/">ایجاد برنامه</a> / <b>تنظیمات</b></div>
+        <div class="spacer"></div>
+        <div class="user-chip"><span class="avatar">م</span> محمد</div>
+      </header>
+      <div class="content">
+      <div class="stepper"><a class="step done" href="/panel/apps/new/"><span class="num">۱</span>پلتفرم</a><span class="sep"></span><a class="step done" href="/panel/apps/new/plan/"><span class="num">۲</span>پلن</a><span class="sep"></span><a class="step active" href="/panel/apps/new/settings/"><span class="num">۳</span>تنظیمات</a></div>
+      <div class="grid cols-2">
+        <div class="card pad-lg">
+          <h1 style="margin-bottom:14px">تنظیمات نهایی</h1>
+          <div class="field">
+            <label for="app-name">نام برنامه</label>
+            <div class="input-group">
+              <input id="app-name" type="text" placeholder="my-app" dir="ltr">
+              <span class="suffix">.liara.run</span>
+            </div>
+            <span class="help">نام یکتا با حروف کوچک انگلیسی، عدد و خط تیره.<br>
+            دامنهٔ پیش‌فرض: <b id="domain-preview" dir="ltr" style="display:inline-block">my-app.liara.run</b></span>
+          </div>
+
+          <div class="field">
+            <label for="port">پورت</label>
+            <input id="port" type="number" value="3000" dir="ltr">
+            <span class="help">پورتی که برنامه روی آن گوش می‌دهد (معمولاً ۳۰۰۰ برای Node/Next، ۸۰ برای ایمیج‌های Docker).</span>
+          </div>
+
+          <div class="field">
+            <label>متغیرهای محیطی</label>
+            <div id="env-list">
+              <div class="env-row">
+                <input type="text" placeholder="KEY" value="NODE_ENV" dir="ltr">
+                <input type="text" placeholder="value" value="production" dir="ltr">
+                <button class="btn ghost sm" type="button" data-del-env>×</button>
+              </div>
+            </div>
+            <button class="btn ghost sm" type="button" data-add-env>＋ افزودن متغیر</button>
+          </div>
+        </div>
+
+        <div class="card pad-lg">
+          <h2 style="margin-bottom:12px">خلاصه</h2>
+          <table>
+            <tbody>
+              <tr><th>پلتفرم</th><td id="sum-platform">—</td></tr>
+              <tr><th>پلن</th><td id="sum-plan">—</td></tr>
+              <tr><th>مدت</th><td id="sum-duration">—</td></tr>
+              <tr><th>دیسک</th><td>بدون دیسک (فایل‌سیستم موقت)</td></tr>
+            </tbody>
+          </table>
+          <p class="lead" style="margin-top:12px;font-size:12px">دیسک فقط وقتی لازم است که برنامه فایل پایدار (آپلود کاربر، SQLite و…) ذخیره کند.</p>
+          <a class="btn" id="next-step" href="/panel/apps/my-shop/" style="margin-top:10px;width:100%;justify-content:center">ایجاد برنامه</a>
+        </div>
+      </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          var s = JSON.parse(localStorage.getItem('lia-mock-panel-state') || '{}');
+          var names = { nextjs:'Next.js', nodejs:'NodeJS', docker:'Docker', laravel:'Laravel', django:'Django', flask:'Flask', react:'React', vue:'VueJS', angular:'Angular', static:'Static', go:'Golang', dotnet:'ASP.NET Core' };
+          var el = document.getElementById('sum-platform');
+          if (s.platform) el.textContent = names[s.platform] || s.platform;
+          var pl = document.getElementById('sum-plan');
+          if (s.planName) pl.textContent = s.planName + ' — ' + Number(s.monthly || 0).toLocaleString('fa-IR') + ' تومان/ماه';
+          var d = document.getElementById('sum-duration');
+          if (s.duration) d.textContent = Number(s.duration).toLocaleString('fa-IR') + ' ماه';
+        });
+      </script></div>
+    </main>
+  </div></body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "version": "2026-10-22",
+  "source": "https://liara.ir/pricing/",
+  "currency": "IRT",
+  "trafficPerGbDownload": 2500,
+  "note": "قیمت‌ها در لحظهٔ دانلود صفحهٔ قیمت لیارا استخراج شده‌اند. با تغییر تعرفه باید بازتولید شود.",
+  "plans": [
+    { "id": "earth", "name": "زمین", "ramGb": 0.512, "vcpu": 0.5, "diskGb": 5, "monthly": 750000, "hourly": 1041 },
+    { "id": "mars", "name": "مریخ", "ramGb": 1, "vcpu": 1, "diskGb": 10, "monthly": 1300000, "hourly": 1805 },
+    { "id": "jupiter", "name": "مشتری", "ramGb": 2, "vcpu": 1, "diskGb": 20, "monthly": 2300000, "hourly": 3194 },
+    { "id": "saturn", "name": "زحل", "ramGb": 4, "vcpu": 2, "diskGb": 40, "monthly": 4125000, "hourly": 5729 },
+    { "id": "uranus", "name": "اورانوس", "ramGb": 8, "vcpu": 4, "diskGb": 80, "monthly": 7250000, "hourly": 10069 },
+    { "id": "neptune", "name": "نپتون", "ramGb": 16, "vcpu": 8, "diskGb": 160, "monthly": 12600000, "hourly": 17500 },
+    { "id": "pluto", "name": "پلوتون", "ramGb": 32, "vcpu": 16, "diskGb": 320, "monthly": 22000000, "hourly": 30555 }
+  ],
+  "platformRamBase": {
+    "static": 0.25,
+    "nextjs": 0.5,
+    "nodejs": 0.5,
+    "docker": 0.5,
+    "laravel": 0.75,
+    "django": 0.75,
+    "flask": 0.75,
+    "go": 0.35,
+    "dotnet": 0.75
+  },
+  "platformRamPerConnection": {
+    "static": 0.002,
+    "nextjs": 0.03,
+    "nodejs": 0.02,
+    "docker": 0.03,
+    "laravel": 0.05,
+    "django": 0.05,
+    "flask": 0.04,
+    "go": 0.008,
+    "dotnet": 0.05
+  }
+}

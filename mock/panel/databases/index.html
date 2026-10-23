@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دیتابیس‌ها — پنل لیارا (جعلی)</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/mock/assets/panel.js"></script>
+<script defer src="/widget/lia.js"></script>
+</head>
+<body><div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">ل</span> لیارا</div>
+      <nav class="nav"><a href="/panel/apps/" class=""><span class="ico">▣</span>برنامه‌ها</a><a href="/panel/databases/" class="active"><span class="ico">⛁</span>دیتابیس‌ها</a><a href="/panel/tickets/" class=""><span class="ico">✉</span>تیکت‌ها</a></nav>
+      <div class="foot">
+        <a href="/">↩ بازگشت به سایت</a>
+        <a href="/mock/">فهرست محیط تست</a>
+        <span>پنل جعلی — فقط برای تست</span>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs"><b>دیتابیس‌ها</b></div>
+        <div class="spacer"></div>
+        <div class="user-chip"><span class="avatar">م</span> محمد</div>
+      </header>
+      <div class="content">
+      <div class="page-head">
+        <div><h1>دیتابیس‌ها</h1><p class="lead">PostgreSQL، MySQL، MongoDB، Redis و …</p></div>
+        <div class="spacer"></div>
+        <button class="btn" type="button">＋ ایجاد دیتابیس</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead><tr><th>نام</th><th>نوع</th><th>پلن</th><th>وضعیت</th></tr></thead>
+          <tbody>
+            <tr><td dir="ltr" style="text-align:left">shop-db</td><td>PostgreSQL 16</td><td>زمین</td><td><span class="badge ok">فعال</span></td></tr>
+            <tr><td dir="ltr" style="text-align:left">cache</td><td>Redis</td><td>زمین</td><td><span class="badge ok">فعال</span></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+    </main>
+  </div></body>
+</html>

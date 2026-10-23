@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>my-shop — پنل لیارا (جعلی)</title>
+<link rel="stylesheet" href="/mock/assets/panel.css">
+<script defer src="/mock/assets/panel.js"></script>
+<script defer src="/widget/lia.js"></script>
+</head>
+<body><div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">ل</span> لیارا</div>
+      <nav class="nav"><a href="/panel/apps/" class="active"><span class="ico">▣</span>برنامه‌ها</a><a href="/panel/databases/" class=""><span class="ico">⛁</span>دیتابیس‌ها</a><a href="/panel/tickets/" class=""><span class="ico">✉</span>تیکت‌ها</a></nav>
+      <div class="foot">
+        <a href="/">↩ بازگشت به سایت</a>
+        <a href="/mock/">فهرست محیط تست</a>
+        <span>پنل جعلی — فقط برای تست</span>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumbs"><a href="/panel/apps/">برنامه‌ها</a> / <b>my-shop</b></div>
+        <div class="spacer"></div>
+        <div class="user-chip"><span class="avatar">م</span> محمد</div>
+      </header>
+      <div class="content">
+      <div class="page-head">
+        <div>
+          <h1>my-shop <span class="badge ok">فعال</span></h1>
+          <p class="lead" dir="ltr" style="text-align:right">my-shop.liara.run · Next.js · پلن زمین</p>
+        </div>
+        <div class="spacer"></div>
+        <a class="btn ghost" href="#">تنظیمات</a>
+        <a class="btn" href="/panel/apps/my-shop/deploy/">↑ استقرار جدید</a>
+      </div>
+
+      <div class="grid cols-4">
+        <div class="card stat"><span class="k">پلتفرم</span><span class="v">Next.js</span></div>
+        <div class="card stat"><span class="k">پلن</span><span class="v">زمین</span></div>
+        <div class="card stat"><span class="k">پورت</span><span class="v" dir="ltr">3000</span></div>
+        <div class="card stat"><span class="k">آخرین ریلیز</span><span class="v">۳ دقیقه پیش</span></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-bottom:12px">منابع</h2>
+        <div class="grid cols-3">
+          <div>
+            <div class="stat"><span class="k">RAM — ۰.۳۲ از ۰.۵۱۲GB</span></div>
+            <div class="meter"><i style="width:62%"></i></div>
+          </div>
+          <div>
+            <div class="stat"><span class="k">CPU — ۱۸٪</span></div>
+            <div class="meter"><i style="width:18%"></i></div>
+          </div>
+          <div>
+            <div class="stat"><span class="k">دیسک — ۱.۷ از ۵GB</span></div>
+            <div class="meter"><i style="width:34%"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tabs">
+          <button data-tab="releases" class="active">ریلیزها</button>
+          <button data-tab="logs">لاگ‌ها</button>
+          <button data-tab="envs">متغیرها</button>
+          <button data-tab="disk">دیسک</button>
+        </div>
+        <div class="tabpane" data-tab="releases" style="margin-top:14px">
+          <table>
+            <thead><tr><th>ریلیز</th><th>وضعیت</th><th>زمان</th><th>مدت بیلد</th></tr></thead>
+            <tbody>
+              <tr><td dir="ltr" style="text-align:left">rel-1041</td><td><span class="badge ok">موفق</span></td><td>۳ دقیقه پیش</td><td>۴۲ ثانیه</td></tr>
+              <tr><td dir="ltr" style="text-align:left">rel-1039</td><td><span class="badge err">ناموفق</span></td><td>۲۵ دقیقه پیش</td><td>۱۹ ثانیه</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tabpane" data-tab="logs" hidden style="margin-top:14px">
+          <div class="logs" id="app-logs">
+<span class="dim">> next build</span>
+<span class="dim">✓ Compiled successfully</span>
+<span class="dim">> Starting server on port 3000</span>
+<span class="ok">Ready on http://0.0.0.0:3000</span>
+<span class="err">Warning: connect ECONNREFUSED 127.0.0.1:5432 (DATABASE_URL)</span>
+          </div>
+        </div>
+        <div class="tabpane" data-tab="envs" hidden style="margin-top:14px">
+          <table>
+            <thead><tr><th>کلید</th><th>مقدار</th></tr></thead>
+            <tbody>
+              <tr><td dir="ltr" style="text-align:left">NODE_ENV</td><td dir="ltr" style="text-align:left">production</td></tr>
+              <tr><td dir="ltr" style="text-align:left">DATABASE_URL</td><td dir="ltr" style="text-align:left">postgres://•••</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tabpane" data-tab="disk" hidden style="margin-top:14px">
+          <p class="lead">دیسکی به این برنامه متصل نیست. فایل‌های آپلودشده با هر ریلیز از بین می‌روند.</p>
+          <button class="btn ghost sm" type="button">＋ افزودن دیسک</button>
+        </div>
+      </div></div>
+    </main>
+  </div></body>
+</html>

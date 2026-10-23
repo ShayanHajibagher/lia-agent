@@ -1,0 +1,18 @@
+{
+  "name": "liyara-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "لیا — دستیار و ایجنت دیپلوی لیارا (نسخهٔ آمادهٔ استقرار)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node start.mjs"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.2.20",
+    "@langchain/langgraph": "^1.5.2",
+    "@langchain/openai": "^1.6.3"
+  }
+}
