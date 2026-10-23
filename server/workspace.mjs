@@ -209,6 +209,39 @@ export function moveFile(sessionId, from, to) {
 }
 
 /**
+ * بازگرداندن سورس از یک پوشهٔ بیرونی (مثلاً فضای استقرار قبلی) به فضای کاری.
+ * لازم است وقتی کاربر بعد از دیپلوی می‌خواهد کد اپ در حال اجرا را ویرایش کند
+ * ولی فضای کاری خالی شده است.
+ */
+export function restoreFromDir(sessionId, fromDir) {
+  if (!fromDir || !fs.existsSync(fromDir)) return 0;
+  const dest = projectDir(sessionId);
+  fs.mkdirSync(dest, { recursive: true });
+  let copied = 0;
+  const walk = (src, out) => {
+    for (const item of fs.readdirSync(src, { withFileTypes: true })) {
+      if (['node_modules', '.git', '.next', 'dist', 'build', 'vendor'].includes(item.name)) continue;
+      if (item.name === '.env') continue;
+      const s1 = path.join(src, item.name);
+      const d1 = path.join(out, item.name);
+      if (item.isDirectory()) {
+        fs.mkdirSync(d1, { recursive: true });
+        walk(s1, d1);
+      } else {
+        try {
+          fs.copyFileSync(s1, d1);
+          copied += 1;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  };
+  walk(fromDir, dest);
+  return copied;
+}
+
+/**
  * اثر انگشت پروژه — برای تشخیص «همین پروژه قبلاً دیپلوی شده».
  * از مسیر + حجم همهٔ فایل‌ها ساخته می‌شود (سریع و بدون خواندن محتوا).
  */

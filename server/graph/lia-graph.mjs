@@ -25,7 +25,7 @@ import { logLine } from '../bus.mjs';
 import { hasProject, projectStats } from '../workspace.mjs';
 import { llmInfo, chatModelOptions } from '../llm.mjs';
 
-const MAX_TURNS = 6; // سقف دورهای مدل در یک نوبت کاربر (هر دور = یک تماس مدل)
+const MAX_TURNS = Math.max(6, Number(process.env.LIA_MAX_TURNS) || 16); // سقف دورهای مدل در یک نوبت (هر دور = یک تماس مدل)
 const MAX_RESULT_CHARS = 4500;
 const HISTORY_MESSAGES = 12;
 const HISTORY_CHARS = 1400;
@@ -143,6 +143,17 @@ function systemPrompt(session) {
       'تا وقتی تلاش دوباره را اجرا نکرده‌ای نگو «حل شد».',
     '۱۴) اگر کاربر گفت «همین پروژه را دوباره دیپلوی کن» یا فایل پروژه را دوباره نفرستاد، اول list_deployments را صدا بزن؛ ' +
       'اگر پروژهٔ زنده‌ای هست با redeploy همان را بالا بیاور و از کاربر نخواه دوباره zip بفرستد.',
+    '۱۵) کار کدنویسی را مثل یک مهندس انجام بده: (الف) analyze_project برای تصویر کلی؛ (ب) فقط همان ۲–۳ فایلی را که واقعاً لازم است read_file کن — ' +
+      'همهٔ فایل‌ها را نخوان؛ (ج) علت را در جملهٔ کوتاه بگو؛ (د) با patch_file اصلاح کن (یا write_file برای فایل جدید/بازنویسی)؛ ' +
+      '(ه) بعد از تغییر، analyze_project را دوباره بزن تا مطمئن شوی مشکل رفع شده؛ (و) اگر لازم بود start_deploy/retry_deploy.',
+    '۱۶) اگر پروژه‌ای آپلود نشده و کاربر می‌خواهد از صفر ساخته شود، خودت فایل‌ها را با write_file بساز ' +
+      '(package.json با start، سرور، صفحات) و بعد analyze_project و در آخر start_deploy؛ منتظر آپلود نمان.',
+    '۱۷) هرگز فایلی را که نخوانده‌ای بازنویسی نکن. اگر متن دقیق برای patch_file را نمی‌دانی، اول read_file.',
+    '۱۸) ویرایش بعد از دیپلوی: اگر اپی در حال اجراست و کاربر تغییری خواست، فایل را در فضای کاری عوض کن و بعد ' +
+      'apply_changes را صدا بزن تا کد تازه روی همان اپ بنشیند (کپی + بیلد + ری‌استارت). ' +
+      'بدون apply_changes تغییر روی اپ دیده نمی‌شود؛ این را به کاربر هم بگو.',
+    '۱۹) نسخه‌ها: هر دیپلوی و هر اعمال تغییر یک نسخه از سورس روی ماشین ما ذخیره می‌کند. ' +
+      'با list_versions نسخه‌ها را ببین و با restore_version به نسخهٔ قبلی برگرد (بعدش apply_changes).',
     '',
     'وضعیت واقعی:',
     stateBlock(session),
@@ -213,7 +224,7 @@ async function agentNode(state, config) {
       ...prompt,
       res,
       ...filler,
-      new deps.HumanMessage('سقف مراحل این دور پر شد. همین حالا بر اساس نتایجی که داری جمع‌بندی کن و قدم بعدی را بگو؛ ابزار جدید صدا نزن.'),
+      new deps.HumanMessage('سقف گام‌های این دور پر شد. همین حالا بر اساس نتایجی که داری جمع‌بندی کن: چه چیزی را فهمیدی، چه کاری انجام شد و قدم بعدی دقیقاً چیست؛ ابزار جدید صدا نزن.'),
     ]);
     return { messages: [res, ...filler, final], turns, status: 'done', pending: null };
   }
@@ -359,6 +370,25 @@ export async function graphReady() {
   return !!(await ensureGraph());
 }
 
+/**
+ * حافظهٔ گفتگو: اگر thread تازه باشد (ری‌استارت سرور یا گفتگوی نو)، آخرین
+ * پیام‌های همین سشن به‌عنوان تاریخچه به گراف داده می‌شود تا ایجنت «یادش» بماند.
+ */
+const seededThreads = new Set();
+
+function transcriptMessages(session, currentText) {
+  const texts = (session.messages || []).filter((m) => m.kind === 'text' && m.text && m.text.trim());
+  const last = texts[texts.length - 1];
+  if (last && last.role === 'user' && last.text === currentText) texts.pop();
+  return texts
+    .slice(-12)
+    .map((m) =>
+      m.role === 'user'
+        ? new deps.HumanMessage(String(m.text).slice(0, 1200))
+        : new deps.AIMessage(String(m.text).slice(0, 1200)),
+    );
+}
+
 function ensureThread(session) {
   session.agent = session.agent || {};
   if (!session.agent.threadId) {
@@ -380,8 +410,13 @@ export async function runGraphAgent(session, emit, text, io) {
   session.agent.status = 'running';
   session.agent.pending = null;
 
+  // تاریخچه فقط یک‌بار برای هر thread تازه تزریق می‌شود
+  const seed = seededThreads.has(threadId) ? [] : transcriptMessages(session, text);
+  seededThreads.add(threadId);
+  if (seed.length) logLine(session.id, 'model', `حافظهٔ گفتگو: ${seed.length} پیام قبلی به ایجنت داده شد`, 'dim');
+
   return drive(session, emit, io, threadId, {
-    messages: [new deps.HumanMessage(text)],
+    messages: [...seed, new deps.HumanMessage(text)],
     turns: 0,
     pending: null,
     status: 'running',
@@ -427,7 +462,7 @@ export async function resumeGraphAgent(session, emit, decision, io) {
 
 async function drive(session, emit, io, threadId, input) {
   const graph = await ensureGraph();
-  const config = { configurable: { thread_id: threadId }, recursionLimit: MAX_TURNS * 2 + 6 };
+  const config = { configurable: { thread_id: threadId }, recursionLimit: MAX_TURNS * 2 + 12 };
 
   let result;
   try {

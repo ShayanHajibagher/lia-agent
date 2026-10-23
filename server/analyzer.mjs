@@ -204,6 +204,51 @@ function scanFindings(files, { platform, pkg, commands, caps }) {
     });
   }
 
+  // وابستگی‌هایی که در کد استفاده شده‌اند ولی در package.json اعلام نشده‌اند
+  if (pkg) {
+    const declared = new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.devDependencies || {})]);
+    const BUILTIN = new Set([
+      'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console', 'constants', 'crypto', 'dgram',
+      'diagnostics_channel', 'dns', 'domain', 'events', 'fs', 'http', 'http2', 'https', 'inspector', 'module',
+      'net', 'os', 'path', 'perf_hooks', 'process', 'punycode', 'querystring', 'readline', 'repl', 'stream',
+      'string_decoder', 'timers', 'tls', 'trace_events', 'tty', 'url', 'util', 'v8', 'vm', 'wasi', 'worker_threads', 'zlib',
+    ]);
+    const depOf = (spec) => {
+      if (!spec || /[${}]/.test(spec)) return null;
+      const clean = spec.startsWith('node:') ? spec.slice(5) : spec;
+      if (clean.startsWith('.') || clean.startsWith('/') || clean.startsWith('@/') || clean.startsWith('~') || clean.startsWith('#')) return null;
+      if (BUILTIN.has(clean)) return null;
+      const parts = clean.split('/');
+      return clean.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+    };
+    const used = new Set();
+    for (const f of files) {
+      if (!/\.(js|mjs|cjs|jsx|ts|tsx)$/i.test(f.name)) continue;
+      const text = readText(f).slice(0, 200_000);
+      for (const m of text.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+        const d = depOf(m[1]);
+        if (d) used.add(d);
+      }
+      for (const m of text.matchAll(/(?:from|import)\s+['"]([^'"]+)['"]/g)) {
+        const d = depOf(m[1]);
+        if (d) used.add(d);
+      }
+    }
+    const missing = [...used].filter((d) => !declared.has(d));
+    if (missing.length) {
+      add({
+        id: 'missing-deps',
+        severity: 'high',
+        title: `${missing.length} وابستگی در package.json نیست`,
+        detail:
+          'این ماژول‌ها در کد استفاده شده‌اند ولی در dependencies نیستند: ' +
+          missing.join('، ') +
+          ' — نصب و اجرا با «Cannot find module» شکست می‌خورد.',
+        fix: 'افزودن به dependencies در package.json',
+      });
+    }
+  }
+
   const sqlite = files.find((f) => /(^|\/)(better-sqlite3|sqlite3|\.db|\.sqlite)$/.test(f.name) || /sqlite/i.test(readText(f).slice(0, 2000)));
   const sqliteDep = pkg && { ...(pkg.dependencies || {}) }['better-sqlite3'];
   if (sqlite || sqliteDep) {

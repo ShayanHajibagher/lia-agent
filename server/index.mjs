@@ -33,15 +33,18 @@ import {
   sessionState,
   deployFinished,
   deployFailed,
+  flushSay,
+  flushAllSays,
 } from './orchestrator.mjs';
 import { analyzeFromZip } from './intake.mjs';
 import { saveProject, fileTree, readFile as readWorkspaceFile, exportZip } from './workspace.mjs';
-import { getRun, snapshot, listDeployments, stopDeployment, staticRoot, onRunFinished, onRunFailed } from './deploy.mjs';
+import { getRun, snapshot, listDeployments, stopDeployment, staticRoot, onRunFinished, onRunFailed, getRunByApp, restartWithCurrentSource } from './deploy.mjs';
 import { appFromHost, proxyToApp, previewDomain } from './preview.mjs';
 import { llmInfo, llmStatus, checkProvider } from './llm.mjs';
 import { PLAN_CATALOG } from './plans.mjs';
 import { createOrGet, getAccount, planStatus, publicAccount, purchase, plansList, linkSession } from './account.mjs';
 import { remember as rememberDeployment } from './registry.mjs';
+import { snapshotVersion } from './versions.mjs';
 import { recent, subscribe, logLine } from './bus.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -380,6 +383,17 @@ async function routeApi(req, res, url, urlPath) {
     }));
     return json(res, 200, { apps, previewDomain: previewDomain() });
   }
+  if (urlPath.startsWith('/api/apps/') && urlPath.endsWith('/reload') && req.method === 'POST') {
+    const name = urlPath.slice('/api/apps/'.length, -'/reload'.length);
+    const run = getRunByApp(name);
+    if (!run) return json(res, 404, { error: 'این اپ در حال اجرا نیست' });
+    try {
+      const snap = await restartWithCurrentSource(run);
+      return json(res, 200, { ok: true, app: name, url: snap.url, status: snap.status });
+    } catch (e) {
+      return json(res, 400, { error: e.message });
+    }
+  }
   if (urlPath.startsWith('/api/apps/') && urlPath.endsWith('/stop') && req.method === 'POST') {
     const name = urlPath.slice('/api/apps/'.length, -'/stop'.length);
     const result = stopDeployment(name);
@@ -488,6 +502,8 @@ async function routeApi(req, res, url, urlPath) {
       sse.send({ t: 'meta', sessionId: session.id, mode: session.mode, stage: session.stage });
       if (urlPath === '/api/chat') await handleChat(session, body.text, sse.send);
       else await handleAction(session, body.action, body.payload || {}, sse.send);
+      // متن‌های صف‌شده در یک پیام فرستاده شوند (به‌جای چند پیام پشت سر هم)
+      flushSay(session.id);
       sse.send({
         t: 'state',
         state: {
@@ -629,8 +645,10 @@ onRunFinished((run, summary) => {
   if (summary?.status !== 'failed') {
     try {
       rememberDeployment({ session, run, summary });
+      // نسخهٔ کد روی ماشین خودمان نگه داشته می‌شود (قابل ویرایش/دیپلوی مجدد)
+      snapshotVersion(run.appName, run.internal?.dir, 'deploy');
     } catch (e) {
-      console.error('registry error:', e.message);
+      console.error('registry/version error:', e.message);
     }
   }
 
@@ -656,7 +674,11 @@ const server = http.createServer(async (req, res) => {
     const subApp = appFromHost(req.headers.host);
     if (subApp && proxyToApp(req, res, subApp)) return;
 
-    if (urlPath.startsWith('/api/')) return await routeApi(req, res, url, urlPath);
+    if (urlPath.startsWith('/api/')) {
+      const out = await routeApi(req, res, url, urlPath);
+      if (req.method === 'POST') flushAllSays(); // پیام‌های صف‌شده قبل از بستن پاسخ بروند
+      return out;
+    }
     return serveStatic(req, res, urlPath);
   } catch (e) {
     console.error('server error:', e);

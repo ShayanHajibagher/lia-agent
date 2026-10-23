@@ -12,7 +12,7 @@ import path from 'node:path';
 import { analyzeFiles } from './analyzer.mjs';
 import { quote, planCard } from './plans.mjs';
 import { progress, stepById, resolveStep } from './steps.mjs';
-import { createRun, advance, snapshot, getRun, retryStep, isSimulated } from './deploy.mjs';
+import { createRun, advance, snapshot, getRun, retryStep, isSimulated, restartWithCurrentSource, getRunByApp } from './deploy.mjs';
 import { diagnoseFailure } from './repair.mjs';
 import {
   hasProject,
@@ -30,17 +30,48 @@ import {
   readAllFiles,
   projectDir,
   projectFingerprint,
+  restoreFromDir,
 } from './workspace.mjs';
 import { checkCommand, runShell } from './exec.mjs';
 import { getAccount, planStatus, publicAccount, plansList } from './account.mjs';
 import { planDeploy } from './planner.mjs';
+import { listVersions, restoreVersion } from './versions.mjs';
+import { logLine } from './bus.mjs';
 import { findReusable, list as listDeployments, get as getDeployment } from './registry.mjs';
 
 const DOC_HOSTS = ['docs.liara.ir', 'liara.ir', 'developers.liara.ir', 'www.liara.ir'];
 
-function requireProject(session) {
-  if (!hasProject(session.id)) {
-    throw new Error('هنوز پروژه‌ای آپلود نشده است. اول zip پروژه یا لینک گیت‌هاب را بده.');
+/**
+ * فضای کاری را آماده می‌کند — ایجنت می‌تواند پروژه را از صفر بسازد.
+ * اگر فضای کاری خالی باشد ولی اپ مستقرشده‌ای وجود داشته باشد، سورس از همان
+ * فضای استقرار برگردانده می‌شود تا «ویرایش کد بعد از دیپلوی» ممکن باشد.
+ */
+function ensureProject(session) {
+  fs.mkdirSync(projectDir(session.id), { recursive: true });
+  if (hasProject(session.id)) return;
+  const run = session.deployRunId ? getRun(session.deployRunId) : null;
+  const from = run?.internal?.dir;
+  if (from && fs.existsSync(from)) {
+    const n = restoreFromDir(session.id, from);
+    if (n) logLine(session.id, 'project', `${n} فایل از اپ مستقرشده به فضای کاری برگردانده شد`, 'dim');
+  }
+}
+
+/**
+ * بعد از هر تغییر فایل، تحلیل را تازه می‌کند تا پلن/دیپلوی و پرامپت با وضعیت
+ * واقعی جدید کار کنند (بدون این، ایجنت بعد از کدنویسی هنوز پروژه را «ناشناخته» می‌دید).
+ */
+function refreshAnalysis(session) {
+  try {
+    const files = readAllFiles(session.id, 2000);
+    if (!files.length) return null;
+    const analysis = analyzeFiles(files);
+    session.analysis = analysis;
+    if (analysis.platform) session.requirement.platform = analysis.platform;
+    if (session.stage === 'greet' || session.stage === 'intake' || !session.stage) session.stage = 'ready';
+    return analysis;
+  } catch {
+    return null;
   }
 }
 
@@ -141,7 +172,7 @@ export const TOOLS = [
       properties: { dir: { type: 'string', description: 'پوشهٔ شروع (اختیاری)' } },
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const { entries } = listFiles(session.id, args.dir || '');
       return {
         summary: `${entries.filter((e) => e.type === 'file').length} فایل`,
@@ -160,7 +191,7 @@ export const TOOLS = [
       required: ['path'],
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const file = readFile(session.id, args.path);
       return {
         summary: `${file.path} (${file.text.split('\n').length} خط)`,
@@ -179,7 +210,7 @@ export const TOOLS = [
       required: ['query'],
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const { matches, query: q } = searchCode(session.id, args.query);
       return {
         summary: `${matches.length} نتیجه برای «${q}»`,
@@ -195,7 +226,7 @@ export const TOOLS = [
       'پروژه را تحلیل می‌کند: پلتفرم، دستور build/start، پورت، وابستگی‌ها، متغیرها و باگ‌های مخصوص لیارا.',
     parameters: { type: 'object', properties: {} },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const analysis = analyzeFiles(loadEntries(session));
       session.analysis = analysis;
       return {
@@ -303,7 +334,7 @@ export const TOOLS = [
     },
     approval: true,
     async preview(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       let before = '';
       try {
         before = readFile(session.id, args.path).text;
@@ -321,8 +352,9 @@ export const TOOLS = [
       };
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const result = writeFile(session.id, args.path, args.content);
+      refreshAnalysis(session);
       return {
         summary: `${result.created ? 'ساخته شد' : 'تغییر کرد'}: ${result.path} (${result.diff.changedLines} تغییر)`,
         data: { path: result.path, created: result.created, changedLines: result.diff.changedLines, diff: result.diff.text },
@@ -348,7 +380,7 @@ export const TOOLS = [
     },
     approval: true,
     async preview(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const before = readFile(session.id, args.path).text;
       const probe = probePatch(before, args.find, args.replace, !!args.all);
       return {
@@ -361,8 +393,9 @@ export const TOOLS = [
       };
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const result = patchFile(session.id, args.path, args.find, args.replace, { all: !!args.all });
+      refreshAnalysis(session);
       return {
         summary: `${result.replaced} بخش از ${result.path} اصلاح شد (${result.diff.changedLines} خط)`,
         data: { path: result.path, replaced: result.replaced, occurrences: result.occurrences, diff: result.diff.text },
@@ -384,7 +417,7 @@ export const TOOLS = [
     },
     approval: true,
     async preview(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const file = readFile(session.id, args.path);
       return {
         title: `حذف «${args.path}»`,
@@ -398,8 +431,9 @@ export const TOOLS = [
       };
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const result = deleteFile(session.id, args.path);
+      refreshAnalysis(session);
       return {
         summary: `حذف شد: ${result.path} (${Math.round(result.bytes / 1024)}KB)`,
         data: { path: result.path, bytes: result.bytes },
@@ -422,7 +456,7 @@ export const TOOLS = [
     },
     approval: true,
     async preview(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       return {
         title: `جابه‌جایی «${args.from}» → «${args.to}»`,
         reason: args.reason,
@@ -431,9 +465,103 @@ export const TOOLS = [
       };
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const result = moveFile(session.id, args.from, args.to);
+      refreshAnalysis(session);
       return { summary: `جابه‌جا شد: ${result.from} → ${result.to}`, data: result };
+    },
+  },
+
+  {
+    name: 'apply_changes',
+    label: 'اعمال تغییرات روی اپ',
+    description:
+      'کد تغییریافته را روی اپ در حال اجرا می‌گذارد: کپی، بیلد (اگر لازم باشد)، ری‌استارت و سلامت‌سنجی. بعد از هر ویرایشی که باید روی اپ دیده شود این را صدا بزن.',
+    parameters: { type: 'object', properties: {} },
+    approval: true,
+    async preview(args, { session }) {
+      const run = session.deployRunId ? getRun(session.deployRunId) : null;
+      if (!run) throw new Error('اپ مستقرشده‌ای در این گفتگو نیست؛ اول دیپلوی کن.');
+      return {
+        title: `اعمال کد روی اپ «${run.appName}»`,
+        reason: 'فایل‌های فضای کاری روی اپ در حال اجرا کپی و برنامه ری‌استارت می‌شود.',
+        impact:
+          'یک نسخه از کد فعلی ذخیره می‌شود، بعد فایل‌ها جایگزین و برنامه دوباره بالا می‌آید ' +
+          '(چند ثانیه قطعی). اگر بیلد لازم باشد، انجام می‌شود.',
+        diff: '',
+      };
+    },
+    async handler(args, { session }) {
+      const run = session.deployRunId ? getRun(session.deployRunId) : null;
+      if (!run) throw new Error('اپ مستقرشده‌ای در این گفتگو نیست؛ اول دیپلوی کن.');
+      const snap = await restartWithCurrentSource(run);
+      return {
+        summary: `کد تازه روی اپ اعمال شد — ${snap.url || ''}`,
+        data: { url: snap.url, status: snap.status, port: snap.steps?.length || null },
+      };
+    },
+  },
+
+  {
+    name: 'list_versions',
+    label: 'نسخه‌های کد',
+    description: 'نسخه‌های ذخیره‌شدهٔ سورس این اپ روی ماشین خودمان (هر دیپلوی و هر اعمال تغییر یک نسخه می‌سازد).',
+    parameters: {
+      type: 'object',
+      properties: { appName: { type: 'string', description: 'نام اپ (پیش‌فرض: اپ همین گفتگو)' } },
+    },
+    async handler(args, { session }) {
+      const run = session.deployRunId ? getRun(session.deployRunId) : null;
+      const appName = args.appName || run?.appName || session.deploySummary?.appName;
+      if (!appName) throw new Error('اپی برای این گفتگو ثبت نشده است.');
+      const versions = listVersions(appName);
+      return {
+        summary: `${versions.length} نسخه برای «${appName}»`,
+        data: {
+          appName,
+          versions: versions.map((v) => ({
+            id: v.id,
+            label: v.label,
+            at: v.at,
+            files: v.files,
+            kb: Math.round(v.bytes / 1024),
+          })),
+        },
+      };
+    },
+  },
+
+  {
+    name: 'restore_version',
+    label: 'برگشت به نسخه',
+    description: 'یک نسخهٔ ذخیره‌شده را در فضای کاری برمی‌گرداند (بعد از آن با apply_changes روی اپ اعمال کن).',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'شناسهٔ نسخه از list_versions' },
+        appName: { type: 'string', description: 'نام اپ (پیش‌فرض: اپ همین گفتگو)' },
+      },
+      required: ['id'],
+    },
+    approval: true,
+    async preview(args, { session }) {
+      const run = session.deployRunId ? getRun(session.deployRunId) : null;
+      const appName = args.appName || run?.appName || session.deploySummary?.appName;
+      return {
+        title: `برگشت به نسخهٔ ${args.id}`,
+        reason: 'فایل‌های این نسخه جایگزین سورس فضای کاری می‌شوند.',
+        impact: 'فضای کاری با آن نسخه بازنویسی می‌شود؛ برای اعمال روی اپ بعدش apply_changes لازم است.',
+        diff: '',
+      };
+    },
+    async handler(args, { session }) {
+      const run = session.deployRunId ? getRun(session.deployRunId) : null;
+      const appName = args.appName || run?.appName || session.deploySummary?.appName;
+      if (!appName) throw new Error('اپی برای این گفتگو ثبت نشده است.');
+      ensureProject(session);
+      const files = restoreVersion(appName, args.id, projectDir(session.id));
+      refreshAnalysis(session);
+      return { summary: `${files} فایل از نسخهٔ ${args.id} برگردانده شد`, data: { appName, id: args.id, files } };
     },
   },
 
@@ -453,7 +581,7 @@ export const TOOLS = [
       },
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const plan = planDeploy({
         analysis: session.analysis || {},
         requirement: session.requirement || {},
@@ -557,7 +685,7 @@ export const TOOLS = [
       },
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const run = createRun({
         session,
         analysis: session.analysis,
@@ -729,7 +857,7 @@ export const TOOLS = [
     },
     approval: true,
     async preview(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const cmd = checkCommand(args.command);
       return {
         title: `اجرای دستور: ${cmd}`,
@@ -740,7 +868,7 @@ export const TOOLS = [
       };
     },
     async handler(args, { session }) {
-      requireProject(session);
+      ensureProject(session);
       const cmd = checkCommand(args.command);
       const timeoutMs = Math.min(120, Math.max(5, Number(args.timeoutSec) || 60)) * 1000;
       const res = await runShell(cmd, { cwd: projectDir(session.id), timeoutMs });

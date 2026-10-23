@@ -43,13 +43,53 @@ export function toNumber(text) {
   return n;
 }
 
+/* ---------------- پیام‌های متنی: یکی در هر نوبت ---------------- */
+
+/**
+ * پیام‌های متنی که پشت سر هم در یک نوبت تولید می‌شوند با هم ادغام می‌شوند تا
+ * کاربر به‌جای ۵–۶ پیام جدا، یک پیام با پاراگراف‌های کوتاه ببیند.
+ * ارسال با کمی تأخیر انجام می‌شود و در پایان هر نوبت (flushSay) قطعی می‌شود.
+ */
+const sayBuf = new Map();
+
 function say(session, emit, text) {
-  const msg = addMessage(session, { kind: 'text', role: 'lia', text });
-  emit({ t: 'msg', msg });
+  const clean = String(text || '').trim();
+  if (!clean) return null;
+  const queued = sayBuf.get(session.id);
+  if (queued) {
+    if (!queued.texts.includes(clean)) queued.texts.push(clean);
+    return null;
+  }
+  const entry = { session, emit, texts: [clean], timer: null };
+  entry.timer = setTimeout(() => flushSay(session.id), 220);
+  sayBuf.set(session.id, entry);
+  return null;
+}
+
+/** متن‌های صف‌شده را به‌صورت یک پیام می‌فرستد (پایان نوبت یا قبل از کارت) */
+export function flushSay(sessionId) {
+  const entry = sayBuf.get(sessionId);
+  if (!entry) return null;
+  clearTimeout(entry.timer);
+  sayBuf.delete(sessionId);
+  const text = entry.texts.join('\n\n');
+  const msg = addMessage(entry.session, { kind: 'text', role: 'lia', text });
+  try {
+    entry.emit({ t: 'msg', msg });
+  } catch {
+    /* استریم بسته شده؛ پیام در سشن ذخیره شده است */
+  }
   return msg;
 }
 
+/** همهٔ متن‌های صف‌شده را می‌فرستد (پایان مسیرهای API) */
+export function flushAllSays() {
+  for (const id of [...sayBuf.keys()]) flushSay(id);
+}
+
 function card(session, emit, cardPayload) {
+  // متن‌های صف‌شده اول می‌روند تا ترتیب «حرف → کارت» حفظ شود
+  flushSay(session.id);
   const msg = addMessage(session, { kind: 'card', role: 'lia', card: cardPayload });
   emit({ t: 'msg', msg });
   return msg;
@@ -150,6 +190,7 @@ export async function greet(session, emit) {
  * یک جملهٔ کوتاه و واقعیت‌محور (fallback) گذاشته می‌شود.
  */
 async function narrate(session, emit, instruction, fallback) {
+  flushSay(session.id);
   if (!llmInfo().configured) {
     if (fallback) say(session, emit, fallback);
     return;
@@ -325,10 +366,13 @@ export async function handleChat(session, rawText, emit) {
   if (INTENTS.deploy.test(text)) return offerModes(session, emit);
   if (INTENTS.plan.test(text)) return startAuto(session, emit);
   if (INTENTS.stuck.test(text)) {
+    // وقتی مدل هست، خودش می‌پرسد و راهنمایی می‌کند (به‌جای متن ثابت)
+    if (llmInfo().configured) return streamAnswer(session, emit, text, { focus: 'stuck' });
     say(session, emit, 'باشه، گیر را پیدا می‌کنیم. بگو در کدام مرحله‌ای (ساخت برنامه، انتخاب پلن، آپلود، بیلد) و چه پیامی می‌بینی. اگر متن خطا را بفرستی، دقیق‌تر می‌گویم.');
     return;
   }
   if (INTENTS.greeting.test(text)) {
+    if (llmInfo().configured) return streamAnswer(session, emit, text, { focus: 'greeting' });
     say(session, emit, 'سلام! برای شروع بگو می‌خواهی سایتی را دیپلوی کنی یا اول پلن مناسب را حساب کنیم؟');
     return;
   }
@@ -719,6 +763,7 @@ export function handleContext(session, ctx, emit) {
       logLine(session.id, 'guided', 'راهنما به آخرین مرحله رسید؛ سشن به حالت چت رفت', 'ok');
     }
   }
+  flushSay(session.id);
 }
 
 /* ---------------- شروع دیپلوی (با نقشهٔ پویا) ---------------- */
@@ -1230,11 +1275,20 @@ export async function deployFailed(session, run, info) {
 
   // تشخیص قطعی چیزی پیدا نکرد → خود ایجنت با ابزارها کد را بررسی می‌کند
   if (!diag.patches.length && !llmInfo().demo && session.agent?.status !== 'running') {
+    const logTail = (run.logs || [])
+      .slice(-25)
+      .map((l) => `[${l.level || 'dim'}] ${l.text}`)
+      .join('\n');
     const prompt =
       `دیپلوی در مرحلهٔ «${diag.stepTitle}» شکست خورد. متن خطا:\n` +
-      `${String(info.error || diag.logTail || '').slice(0, 1200)}\n\n` +
-      'خودت دیباگ کن: فایل‌های مرتبط را بخوان، علت را پیدا کن و اگر تغییر کد لازم است ' +
-      'با write_file اصلاح کن. بعد بگو چه چیزی را عوض کردی و چرا. حدس نزن؛ اول بخوان.';
+      `${String(info.error || diag.logTail || '').slice(0, 1500)}\n\n` +
+      `آخرین لاگ‌های اجرا:\n${logTail.slice(-2500) || '(خالی)'}\n\n` +
+      'این کار را واقعاً انجام بده (نه توضیح کلی):\n' +
+      '۱) analyze_project و بعد فایل‌های مرتبط را با read_file بخوان.\n' +
+      '۲) علت دقیق را در یک جمله بگو (کدام فایل، کدام خط).\n' +
+      '۳) با patch_file (یا write_file اگر لازم است) اصلاح کن.\n' +
+      '۴) بعد analyze_project را دوباره بزن تا مطمئن شوی مشکل رفته.\n' +
+      '۵) در پایان بگو چه چیزی عوض شد و اگر لازم است retry_deploy را صدا بزن.';
     logLine(session.id, 'repair', 'تشخیص قطعی چیزی پیدا نکرد؛ از مدل برای دیباگ عمیق‌تر کمک می‌گیرم', 'dim');
     try {
       await runAgent(session, emit, prompt, agentIO(session, emit));

@@ -23,6 +23,7 @@ import { logLine } from './bus.mjs';
 import { projectDir, hasProject } from './workspace.mjs';
 import { planDeploy } from './planner.mjs';
 import { dataPath } from './paths.mjs';
+import { snapshotVersion } from './versions.mjs';
 
 const DEPLOY_ROOT = dataPath('deployments');
 const PORT_RANGE = [4310, 4399];
@@ -162,6 +163,30 @@ function killExisting(appName) {
   if (!prev) return;
   killTree(prev.child);
   prev.status = 'stopped';
+}
+
+/** آیا چیزی روی این پورت گوش می‌دهد؟ */
+function portInUse(port) {
+  return new Promise((resolve) => {
+    const sock = net.connect({ host: '127.0.0.1', port });
+    const done = (v) => {
+      sock.destroy();
+      resolve(v);
+    };
+    sock.once('connect', () => done(true));
+    sock.once('error', () => done(false));
+    sock.setTimeout(400, () => done(false));
+  });
+}
+
+/** تا آزادشدن پورت صبر می‌کند (kill در ویندوز async است) */
+async function waitPortFree(port, ms = 5000) {
+  const started = Date.now();
+  while (Date.now() - started < ms) {
+    if (!(await portInUse(port))) return true;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return false;
 }
 
 function runCommand(run, command, args, { cwd, env, timeoutMs, stepId }) {
@@ -898,6 +923,53 @@ export async function retryStep(run, stepId, opts = {}) {
   log(run, `تلاش دوباره (${tries + 2}): ${step.title}`, 'warn', stepId);
   executeStep(run, step);
   return snapshot(run);
+}
+
+/* ---------------- اعمال کد تازه روی اپ در حال اجرا ---------------- */
+
+/**
+ * سورس تازهٔ فضای کاری را روی اپ در حال اجرا اعمال می‌کند:
+ * کپی → بیلد (اگر مرحله داشته باشد) → ری‌استارت → سلامت‌سنجی.
+ * برای «بعد از دیپلوی هم بتوانم کد را عوض کنم» لازم است.
+ */
+export async function restartWithCurrentSource(run) {
+  if (!run) throw new Error('اجرای دیپلوی پیدا نشد؛ اول یک‌بار دیپلوی کن.');
+  if (!run.internal?.dir) throw new Error('فضای استقرار این اپ پیدا نشد.');
+  if (SIMULATE) throw new Error('در حالت شبیه‌سازی اپی اجرا نشده که تغییر رویش اعمال شود.');
+  if (!hasProject(run.sessionId)) throw new Error('سورس پروژه در فضای کاری نیست.');
+
+  // نسخهٔ فعلی (قبل از تغییر) نگه داشته می‌شود تا بشود برگشت
+  const before = snapshotVersion(run.appName, run.internal.dir, 'before-apply');
+  if (before) log(run, `نسخهٔ قبلی ذخیره شد (${before.files} فایل)`, 'dim');
+
+  const stats = syncSource(run);
+  log(run, `↻ ${stats.files} فایل تازه روی فضای استقرار کپی شد`, 'ok');
+
+  const hasBuild = run.steps.some((s) => s.id === 'build');
+  if (hasBuild) await STEP_HANDLERS.build(run, { id: 'build', title: 'بیلد پروژه' });
+
+  killExisting(run.appName);
+  deployed.delete(run.appName);
+  const freed = await waitPortFree(run.internal.port);
+  if (!freed) {
+    // اگر پروسهٔ قبلی پورت را نگه داشته، با پورت تازه بالا می‌آید
+    const fresh = await pickPort();
+    log(run, `پورت قبلی آزاد نشد؛ پورت تازه: ${fresh}`, 'warn');
+    run.internal.port = fresh;
+    run.internal.healthUrl = `http://127.0.0.1:${fresh}`;
+  }
+  await STEP_HANDLERS.start(run, { id: 'start', title: 'اجرای برنامه' });
+  await STEP_HANDLERS.health(run, { id: 'health', title: 'سلامت‌سنجی' });
+
+  run.status = 'done';
+  log(run, `✓ کد تازه اعمال شد: ${run.url}`, 'ok');
+  return snapshot(run);
+}
+
+/** اجرای دیپلوی مربوط به یک اپ زنده (برای API) */
+export function getRunByApp(name) {
+  const dep = deployed.get(name);
+  return dep?.runId ? runs.get(dep.runId) || null : null;
 }
 
 /* ---------------- مدیریت اپ‌های مستقرشده ---------------- */
