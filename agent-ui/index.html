@@ -3,15 +3,26 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>لیا · بخش ایجنت</title>
+<title>لیا · استودیوی هوشمند وایب‌کدینگ و استقرار لیارا</title>
 <link rel="icon" href="/assets/favicon.ico" />
 <link rel="stylesheet" href="/agent/agent.css" />
 </head>
 <body>
 <header class="top">
   <div class="brand">
-    <span class="logo">لیا</span>
-    <span class="tag">بخش ایجنت</span>
+    <div class="brand-avatar-wrap">
+      <img src="/widget/assets/lia/avatar.webp" alt="لیا" class="brand-avatar-img" />
+      <span class="brand-pulse"></span>
+    </div>
+    <div class="brand-titles">
+      <span class="logo">لیا</span>
+      <span class="tag"><span class="pulse-dot"></span> دستیار دیپلوی و استودیوی هوشمند لیارا</span>
+    </div>
+  </div>
+
+  <div class="model-badge" title="متصل به درگاه BoxAPI با مدل اختصاصی">
+    <span class="dot-live"></span>
+    <span class="model-name">BoxAPI · gpt-6-luna</span>
   </div>
 
   <div class="who">
@@ -23,56 +34,293 @@
   </div>
 
   <div class="right">
+    <button id="historyToggleBtn" class="btn ghost history-btn" title="مشاهده تاریخچهٔ گفتگوها">
+      <span class="btn-icon">📜</span>
+      <span>تاریخچه</span>
+      <span id="historyCountBadge" class="history-count-badge" hidden>۰</span>
+    </button>
+    <button id="samplesBtn" class="btn ghost" title="مشاهده و بارگذاری پروژه‌های نمونه">پروژه‌های نمونه</button>
     <button id="autoFixBtn" class="btn ghost" title="رفع خودکار خطای دیپلوی">رفع خودکار: خاموش</button>
     <span id="status" class="status">در حال اتصال…</span>
     <a class="btn ghost" href="/" target="_blank" rel="noopener">سایت</a>
     <a class="btn ghost" href="/panel/" target="_blank" rel="noopener">پنل</a>
-    <button id="newChat" class="btn">گفتگوی تازه</button>
+    <button id="newChat" class="btn primary">گفتگوی تازه</button>
   </div>
 </header>
 
 <main>
+  <!-- سایدبار سمت راست (پروژه، فایل‌ها و استقرار) -->
   <aside class="side">
+    <!-- قهرمان: آواتار متحرک و وضعیت زندهٔ لیا -->
+    <section class="panel lia-hero-panel" id="liaHero">
+      <div class="hero-main">
+        <div class="hero-art" id="heroArt">
+          <img id="heroImg" src="/widget/assets/lia/welcome.webp" alt="لیا" />
+          <div class="scan"></div>
+          <span class="spark s1"></span>
+          <span class="spark s2"></span>
+          <span class="spark s3"></span>
+          <span class="hero-badge" id="heroBadge">آماده</span>
+        </div>
+        <div class="hero-info">
+          <div class="hero-title" id="heroTitle">سلام، من لیا هستم</div>
+          <div class="hero-sub" id="heroSub">همه‌کارهٔ پروژه‌ات: بررسی، پلن، دیپلوی</div>
+          <div class="hero-bar-wrap" id="heroBarWrap"><i id="heroBar"></i></div>
+          <div class="hero-meta">
+            <span id="heroStage">آمادهٔ شروع</span>
+            <b id="heroPercent">۰٪</b>
+          </div>
+        </div>
+      </div>
+      <div class="hero-tasks" id="heroTasks" hidden></div>
+    </section>
+
+    <!-- بخش فایل‌ها -->
     <section class="panel">
       <div class="panel-head">
-        <h3>پروژه</h3>
-        <button id="uploadBtn" class="mini">آپلود zip</button>
+        <h3>فایل‌های پروژه</h3>
+        <button id="uploadBtn" class="mini primary-mini">+ آپلود zip</button>
         <input id="fileInput" type="file" accept=".zip" hidden />
+      </div>
+      <div class="file-search-wrap">
+        <input id="fileSearch" type="text" placeholder="جستجوی فایل..." />
       </div>
       <div id="files" class="files"><div class="empty">هنوز پروژه‌ای آپلود نشده</div></div>
       <div class="panel-foot">
-        <a id="downloadLink" class="mini disabled" href="#" download>دانلود نسخهٔ کاری</a>
+        <button id="openEditorBtn" class="mini">باز کردن در ادیتور</button>
+        <a id="downloadLink" class="mini disabled" href="#" download>دانلود سورس</a>
       </div>
     </section>
 
+    <!-- نمونه‌های سریع -->
+    <section class="panel quick-samples-panel">
+      <div class="panel-head">
+        <h3>شروع سریع با نمونه</h3>
+      </div>
+      <div class="quick-samples-list">
+        <button class="sample-chip" data-sample="nextjs-shop">
+          <span class="sample-icon">🛍️</span>
+          <div class="sample-info">
+            <span class="sample-title">فروشگاه Next.js</span>
+            <span class="sample-sub">وب‌شاپ با باگ‌های نمونه</span>
+          </div>
+        </button>
+        <button class="sample-chip" data-sample="static-portfolio">
+          <span class="sample-icon">⚡</span>
+          <div class="sample-info">
+            <span class="sample-title">سایت پورتفولیو</span>
+            <span class="sample-sub">استاتیک، سریع و آماده</span>
+          </div>
+        </button>
+        <button class="sample-chip" data-sample="node-hello">
+          <span class="sample-icon">🟢</span>
+          <div class="sample-info">
+            <span class="sample-title">سرویس Node.js</span>
+            <span class="sample-sub">API سبک و سریع</span>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- بخش وضعیت دیپلوی -->
     <section class="panel" id="deployPanel" hidden>
       <div class="panel-head">
-        <h3>دیپلوی</h3>
+        <h3>وضعیت استقرار</h3>
         <span id="deployStatus" class="badge">—</span>
       </div>
       <div class="progress"><div id="deployBar"></div></div>
+      <div id="deployAppMeta" class="deploy-app-meta" hidden>
+        <div class="app-url-row">
+          <span class="meta-label">آدرس:</span>
+          <a id="deployedUrlLink" class="meta-url" href="#" target="_blank" rel="noopener">—</a>
+        </div>
+        <div class="app-actions-row">
+          <button id="quickRedeployBtn" class="mini primary-mini">🚀 دیپلوی مجدد</button>
+          <button id="goToPreviewTabBtn" class="mini">🌐 پیش‌نمایش زنده</button>
+        </div>
+      </div>
       <div id="deploySteps" class="steps"></div>
       <pre id="deployLogs" class="logs"></pre>
     </section>
   </aside>
 
-  <section class="chat">
-    <div id="msgs" class="msgs"></div>
-    <form id="composer" class="composer">
-      <textarea id="input" rows="1" placeholder="مثلاً: یک فروشگاه Next.js بساز، باگ‌هایش را رفع کن و دیپلوی کن…"></textarea>
-      <button id="send" class="btn primary" type="submit">ارسال</button>
-    </form>
-    <div class="hint">
-      Enter ارسال · Shift+Enter خط جدید · کارهای حساس فقط با اجازهٔ تو اجرا می‌شوند
+  <!-- فضای اصلی کار با تب‌ها -->
+  <section class="workspace">
+    <!-- نوار تب‌ها -->
+    <nav class="tabs-bar">
+      <button class="tab-btn active" data-tab="chat">
+        <span class="tab-icon">💬</span>
+        <span>گفتگو با لیا</span>
+      </button>
+      <button class="tab-btn" data-tab="editor">
+        <span class="tab-icon">💻</span>
+        <span>استودیوی کد و فایل‌ها</span>
+        <span id="editorActiveBadge" class="tab-badge" hidden>انتخاب شده</span>
+      </button>
+      <button class="tab-btn" data-tab="preview">
+        <span class="tab-icon">🌐</span>
+        <span>پیش‌نمایش زنده (Iframe)</span>
+        <span id="previewLiveIndicator" class="tab-live-dot" hidden></span>
+      </button>
+      <button class="tab-btn" data-tab="logs">
+        <span class="tab-icon">📋</span>
+        <span>کنسول لاگ‌ها</span>
+      </button>
+    </nav>
+
+    <!-- محتوای تب ۱: چت با ایجنت -->
+    <div id="viewChat" class="tab-content active">
+      <div class="chat-container">
+        <div id="msgs" class="msgs"></div>
+        <div class="composer-wrap">
+          <div id="quickPromptChips" class="quick-chips">
+            <button class="quick-chip" data-prompt="ساختار فایل‌ها و معماری این پروژه را برایم توضیح بده.">📂 توضیح ساختار فایل‌ها</button>
+            <button class="quick-chip" data-prompt="آیا در کدهای پروژه خطا، باگ یا تنظیم نامناسبی برای لیارا وجود دارد؟">🔍 تحلیل باگ و تنظیمات</button>
+            <button class="quick-chip" data-prompt="می‌خواهم یک ادیت در فایل‌های پروژه انجام دهم، راهنمایی‌ام کن.">✍️ وایب‌کدینگ و ادیت</button>
+            <button class="quick-chip" data-prompt="پروژه را با آخرین تغییرات دوباره دیپلوی کن.">🚀 دیپلوی مجدد</button>
+          </div>
+          <form id="composer" class="composer">
+            <textarea id="input" rows="1" placeholder="به لیا بگو: مثلاً رنگ عنوان را در index.html عوض کن، باگ‌ها را رفع کن و دیپلوی کن…"></textarea>
+            <button id="send" class="btn primary" type="submit">ارسال</button>
+          </form>
+          <div class="hint">
+            Enter ارسال · Shift+Enter خط جدید · مدل هوشمند gpt-6-luna مستقیماً به فضای کاری پروژه متصل است
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- محتوای تب ۲: استودیوی کد و ویرایشگر فایل -->
+    <div id="viewEditor" class="tab-content">
+      <div class="editor-container">
+        <!-- تولبار بالای ادیتور -->
+        <div class="editor-toolbar">
+          <div class="editor-file-info">
+            <span id="editorCurrentPath" class="editor-path">فایلی انتخاب نشده است (از سایدبار یک فایل انتخاب کنید)</span>
+            <span id="editorFileLang" class="file-lang-badge">TEXT</span>
+            <span id="editorFileLines" class="file-lines-counter">۰ سطر</span>
+          </div>
+          <div class="editor-actions">
+            <button id="editorToggleDiffBtn" class="btn ghost mini" title="مشاهده تغییرات قبل و بعد">نمایش دیف (Diff)</button>
+            <button id="editorSaveBtn" class="btn mini primary-mini" disabled>💾 ذخیره تغییرات</button>
+            <button id="editorRedeployBtn" class="btn mini primary-mini" title="اعمال تغییرات و دیپلوی دوباره">🚀 دیپلوی مجدد</button>
+          </div>
+        </div>
+
+        <!-- نوار وایب‌کدینگ سریع در خود ادیتور -->
+        <div class="editor-ai-bar">
+          <span class="ai-bar-label">🪄 ادیت هوشمند با لیا:</span>
+          <input id="editorAiPrompt" type="text" placeholder="مثلاً: هدر را ریسپانسیو کن، فونت را اصلاح کن، یا دکمه سفارش اضافه کن..." />
+          <button id="editorAiApplyBtn" class="btn mini primary-mini">اعمال با هوش مصنوعی</button>
+        </div>
+
+        <!-- بدنه ادیتور -->
+        <div class="editor-body-wrap">
+          <!-- نمای کد استاندارد -->
+          <div id="editorCodeView" class="editor-code-view">
+            <div id="editorGutter" class="editor-gutter">1</div>
+            <textarea id="editorTextarea" class="editor-textarea" spellcheck="false" placeholder="محتوای فایل اینجا نمایش داده می‌شود..."></textarea>
+          </div>
+          <!-- نمای دیف -->
+          <div id="editorDiffView" class="editor-diff-view" hidden>
+            <div class="diff-header">
+              <span>تغییرات نسبت به نسخهٔ اصلی:</span>
+              <button id="editorCloseDiffBtn" class="mini">بازگشت به ادیتور</button>
+            </div>
+            <pre id="editorDiffContent" class="diff-content"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- محتوای تب ۳: پیش‌نمایش زنده اپ (Iframe) -->
+    <div id="viewPreview" class="tab-content">
+      <div class="preview-container">
+        <div class="preview-toolbar">
+          <div class="preview-address-bar">
+            <span class="preview-status-dot online"></span>
+            <input id="previewUrlInput" type="text" readonly placeholder="https://..." dir="ltr" />
+            <button id="previewCopyUrlBtn" class="mini" title="کپی آدرس">کپی</button>
+            <button id="previewReloadBtn" class="mini" title="بارگذاری مجدد">↻ تازه‌سازی</button>
+            <a id="previewOpenTabBtn" class="mini" href="#" target="_blank" rel="noopener" title="باز کردن در تب جداگانه">↗ پنجره جدید</a>
+          </div>
+          <div class="preview-viewport-controls">
+            <button class="vp-btn active" data-vp="desktop" title="نمای دسکتاپ (۱۰۰٪)">🖥️ دسکتاپ</button>
+            <button class="vp-btn" data-vp="tablet" title="نمای تبلت (۷۶۸px)">📱 تبلت</button>
+            <button class="vp-btn" data-vp="mobile" title="نمای موبایل (۳۷۵px)">📲 موبایل</button>
+          </div>
+        </div>
+
+        <div id="previewFrameWrap" class="preview-frame-wrap vp-desktop">
+          <div id="previewEmptyState" class="preview-empty">
+            <div class="empty-icon">🚀</div>
+            <h3>هنوز برنامه‌ای مستقر نشده است</h3>
+            <p>پس از آپلود و استقرار پروژه توسط لیا، پیش‌نمایش زنده در این بخش نمایش داده می‌شود.</p>
+            <button id="previewStartSampleBtn" class="btn primary">بارگذاری و استقرار نمونه</button>
+          </div>
+          <iframe id="previewIframe" class="preview-iframe" hidden sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- محتوای تب ۴: کنسول لاگ‌های زنده -->
+    <div id="viewLogs" class="tab-content">
+      <div class="logs-container">
+        <div class="logs-toolbar">
+          <span class="logs-title">استریم رویدادها و لاگ‌های ترمینال</span>
+          <div class="logs-actions">
+            <button id="clearLogsBtn" class="mini">پاک‌کردن لاگ‌ها</button>
+            <button id="copyLogsBtn" class="mini">کپی لاگ‌ها</button>
+          </div>
+        </div>
+        <pre id="systemLogsTerminal" class="logs-terminal"></pre>
+      </div>
     </div>
   </section>
 </main>
 
+<!-- دراور سایدبار تاریخچه گفتگوها و پروژه‌ها -->
+<div id="historyOverlay" class="history-overlay" hidden></div>
+<aside id="historyDrawer" class="history-drawer" aria-hidden="true">
+  <div class="history-drawer-head">
+    <div class="history-drawer-title">
+      <span class="history-title-icon">📜</span>
+      <h3>تاریخچهٔ گفتگوها</h3>
+    </div>
+    <div class="history-drawer-actions">
+      <button id="historyNewBtn" class="mini primary-mini" title="شروع گفتگوی جدید">+ گفتگوی تازه</button>
+      <button id="historyCloseBtn" class="mini close-btn" title="بستن تاریخچه">✕</button>
+    </div>
+  </div>
+  <div class="history-search-wrap">
+    <input id="historySearchInput" type="text" placeholder="جستجو در گفتگوها و پروژه‌ها..." />
+  </div>
+  <div id="historyList" class="history-list">
+    <div class="empty">در حال بارگذاری تاریخچه...</div>
+  </div>
+  <div class="history-drawer-foot">
+    <span class="history-tip">💡 انتخاب هر سشن کدهای پروژه، پیام‌ها و وضعیت استقرار آن را بازمی‌گرداند.</span>
+  </div>
+</aside>
+
+
+<!-- مدال انتخاب پروژه‌های نمونه -->
+<dialog id="samplesDialog">
+  <div class="dlg wide">
+    <div class="dlg-head">
+      <h3>انتخاب پروژهٔ نمونه برای تست</h3>
+      <button class="btn ghost" id="samplesClose" type="button">بستن</button>
+    </div>
+    <p class="muted">یکی از پروژه‌های زیر را انتخاب کنید تا بلافاصله در فضای کاری بارگذاری و آمادهٔ استقرار شود:</p>
+    <div id="samplesListContainer" class="samples-grid"></div>
+  </div>
+</dialog>
+
 <!-- ورود / ساخت حساب -->
 <dialog id="loginDialog">
   <form id="loginForm" class="dlg">
-    <h3>حساب لیا</h3>
-    <p class="muted">با ایمیل وارد شو تا پلن و پروژه‌هایت به گفتگو وصل شوند.</p>
+    <h3>حساب کاربری لیارا</h3>
+    <p class="muted">با ایمیل وارد شو تا پروژه‌ها و پلن‌هایت ذخیره شوند.</p>
     <label>ایمیل <input id="email" type="email" required placeholder="you@example.com" dir="ltr" /></label>
     <label>نام <input id="name" type="text" placeholder="نام تو" /></label>
     <div class="dlg-actions">
@@ -85,8 +333,8 @@
 <!-- خرید پلن -->
 <dialog id="checkoutDialog">
   <div class="dlg wide">
-    <h3>خرید پلن</h3>
-    <p class="muted">پرداخت در این نسخه شبیه‌سازی شده است؛ قرارداد API آن در README-API.md آمده.</p>
+    <h3>خرید پلن لیارا</h3>
+    <p class="muted">پلن منابع ابری را انتخاب کنید:</p>
     <div id="plans" class="plans"></div>
     <div class="dlg-row">
       <label>مدت
@@ -103,17 +351,6 @@
       <button class="btn primary" id="payBtn" type="button">پرداخت و فعال‌سازی</button>
       <button class="btn ghost" id="checkoutClose" type="button">بستن</button>
     </div>
-  </div>
-</dialog>
-
-<!-- نمایش فایل -->
-<dialog id="fileDialog">
-  <div class="dlg wide">
-    <div class="dlg-head">
-      <h3 id="fileName">فایل</h3>
-      <button class="btn ghost" id="fileClose" type="button">بستن</button>
-    </div>
-    <pre id="fileBody" class="file-body"></pre>
   </div>
 </dialog>
 

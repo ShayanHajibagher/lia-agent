@@ -8,7 +8,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node start.mjs"
+    "dev": "PORT=3000 node start.mjs",
+    "start": "PORT=3000 node start.mjs",
+    "build": "node -e 'console.log(\"Build ready\")'"
   },
   "dependencies": {
     "@langchain/core": "^1.2.20",

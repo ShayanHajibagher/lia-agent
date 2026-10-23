@@ -138,3 +138,53 @@ export function saveRun(run) {
 export function getRun(id) {
   return runs.get(id) || null;
 }
+
+/* ---------------- فهرست و حذف سشن‌ها (تاریخچه) ---------------- */
+
+export function listSessions() {
+  const list = [];
+  for (const s of sessions.values()) {
+    const messages = s.messages || [];
+    const firstUserMsg = messages.find((m) => m.role === 'user' && m.kind === 'text');
+    const lastMsg = messages[messages.length - 1];
+
+    const appName = s.analysis?.app?.name || s.deploySummary?.appName || null;
+    const title = appName
+      ? `پروژه ${appName}`
+      : firstUserMsg?.text
+        ? String(firstUserMsg.text).slice(0, 45).trim()
+        : 'گفتگوی تازه';
+
+    const platform = s.analysis?.app?.platform || null;
+    const deployStatus = s.deploySummary
+      ? (s.deploySummary.status === 'success' || s.deploySummary.success ? 'success' : 'failed')
+      : (s.deployRunId ? 'deploying' : null);
+
+    list.push({
+      id: s.id,
+      title,
+      appName,
+      platform,
+      mode: s.mode || 'idle',
+      stage: s.stage || 'greet',
+      deployStatus,
+      deployUrl: s.deploySummary?.url || null,
+      messageCount: messages.length,
+      lastMessage: lastMsg?.text ? String(lastMsg.text).slice(0, 70) : null,
+      createdAt: s.createdAt || Date.now(),
+      updatedAt: s.updatedAt || Date.now(),
+    });
+  }
+
+  return list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+export function deleteSession(id) {
+  const exists = sessions.has(id);
+  if (exists) {
+    sessions.delete(id);
+    scheduleSave();
+  }
+  return exists;
+}
+

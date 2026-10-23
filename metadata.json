@@ -1,0 +1,6 @@
+{
+  "name": "Liara AI Assistant & Cloud Studio",
+  "description": "ایجنت هوشمند استقرار، وایب‌کدینگ، ویرایش فایل‌ها و مدیریت ابری لیارا (لیا)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

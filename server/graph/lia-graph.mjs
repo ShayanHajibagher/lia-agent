@@ -27,8 +27,108 @@ import { llmInfo, chatModelOptions } from '../llm.mjs';
 
 const MAX_TURNS = Math.max(6, Number(process.env.LIA_MAX_TURNS) || 16); // سقف دورهای مدل در یک نوبت (هر دور = یک تماس مدل)
 const MAX_RESULT_CHARS = 4500;
-const HISTORY_MESSAGES = 12;
-const HISTORY_CHARS = 1400;
+const HISTORY_MESSAGES = 28;
+const HISTORY_CHARS = 2400;
+
+/**
+ * تاریخچهٔ ارسالی به مدل:
+ * ۱) پیوندهای tool_calls و ToolMessage را به هم حفظ می‌کند (هرگز ToolMessage بدون AIMessage یا ناتمام فرستاده نمی‌شود).
+ * ۲) شروع پیام‌ها ترجیحاً با HumanMessage است.
+ * ۳) پیام‌های خیلی طولانی را به اندازهٔ معقول کوتاه می‌کند.
+ * ۴) باگ OpenAI 400 (پیام tool بی‌پدر یا بریده‌شده در سقف تاریخچه بعد از چند نوبت گفتگو) را به طور کامل رفع می‌کند.
+ */
+function sanitizeAndTrimHistory(messages, maxMessages = HISTORY_MESSAGES) {
+  if (!Array.isArray(messages) || !messages.length) return [];
+
+  // دسته‌بندی پیام‌ها به واحدهای اتمیک
+  // هر واحد: یا یک پیام تک (کاربر / دستیار بدون ابزار) است
+  // یا یک دستیار دارای tool_calls به همراه تمام پاسخ‌های ToolMessage متناظرش
+  const units = [];
+  const n = messages.length;
+  let i = 0;
+
+  while (i < n) {
+    const m = messages[i];
+    const toolCalls = m?.tool_calls || [];
+    const isToolMsg = m instanceof deps.ToolMessage || m?._getType?.() === 'tool' || m?.role === 'tool';
+
+    if (isToolMsg) {
+      // پیام tool بدون والد در این نقطه: آن را حذف کن تا ۴۰۰ رخ ندهد
+      i++;
+      continue;
+    }
+
+    if (toolCalls.length > 0) {
+      const callIds = new Set(toolCalls.map((c) => c.id).filter(Boolean));
+      const group = [m];
+      i++;
+      while (i < n) {
+        const next = messages[i];
+        const nextIsTool = next instanceof deps.ToolMessage || next?._getType?.() === 'tool' || next?.role === 'tool';
+        if (nextIsTool && callIds.has(next.tool_call_id)) {
+          group.push(next);
+          callIds.delete(next.tool_call_id);
+          i++;
+        } else if (nextIsTool) {
+          group.push(next);
+          i++;
+        } else {
+          break;
+        }
+      }
+
+      // اگر برای ابزاری پاسخی نبود (مثلاً حین قطع شدن)، پاسخ فیلر بساز تا ساختار OpenAI معتبر بماند
+      for (const call of toolCalls) {
+        const hasResp = group.some((g) => (g instanceof deps.ToolMessage || g?.role === 'tool') && g.tool_call_id === call.id);
+        if (!hasResp) {
+          group.push(new deps.ToolMessage({
+            content: JSON.stringify({ note: 'پاسخ ابزار در تاریخچه ثبت نشده یا بازپخش شده است' }),
+            tool_call_id: call.id,
+          }));
+        }
+      }
+
+      units.push(group);
+    } else {
+      units.push([m]);
+      i++;
+    }
+  }
+
+  // حالا از انتهای آرایه تا سقف maxMessages پیام‌ها را برمی‌داریم
+  let count = 0;
+  const pickedUnits = [];
+  for (let u = units.length - 1; u >= 0; u--) {
+    const group = units[u];
+    if (count + group.length > maxMessages && pickedUnits.length > 0) {
+      break;
+    }
+    pickedUnits.unshift(group);
+    count += group.length;
+  }
+
+  // پیام‌ها را صاف (flatten) کن
+  const flat = pickedUnits.flat();
+
+  // اگر اولین پیام flat یک ToolMessage بود (محض احتیاط)، آن را حذف کن
+  while (flat.length && (flat[0] instanceof deps.ToolMessage || flat[0]?.role === 'tool')) {
+    flat.shift();
+  }
+
+  // کوتاه کردن متن‌های بسیار بزرگ برای مدیریت پنجره کانتکست
+  return flat.map((m) => {
+    const isTool = m instanceof deps.ToolMessage || m?.role === 'tool';
+    const limit = isTool ? 2400 : HISTORY_CHARS;
+    const text = messageText(m);
+    if (text.length <= limit) return m;
+    const Cls = m.constructor;
+    try {
+      return new Cls({ ...m, content: text.slice(0, limit) + '\n…(کوتاه شد)' });
+    } catch {
+      return m;
+    }
+  });
+}
 
 /* ---------------- بارگذاری تنبل وابستگی‌ها ---------------- */
 
@@ -160,21 +260,6 @@ function systemPrompt(session) {
   ].join('\n');
 }
 
-/** تاریخچهٔ ارسالی به مدل: کوتاه، بدون پیام‌های سیستمی و با سقف کاراکتر */
-function trimHistory(messages) {
-  const keep = messages.slice(-HISTORY_MESSAGES);
-  return keep.map((m) => {
-    const text = messageText(m);
-    if (text.length <= HISTORY_CHARS) return m;
-    const Cls = m.constructor;
-    try {
-      return new Cls({ ...m, content: text.slice(0, HISTORY_CHARS) + '…' });
-    } catch {
-      return m;
-    }
-  });
-}
-
 /* ---------------- وضعیت گراف ---------------- */
 
 let compiled = null;
@@ -208,7 +293,7 @@ async function agentNode(state, config) {
   const model = new deps.ChatOpenAI(chatModelOptions({ maxTokens: 1200 }));
   const bound = model.bindTools(toolSchemas());
 
-  const prompt = [new deps.SystemMessage(systemPrompt(ctx.session)), ...trimHistory(state.messages)];
+  const prompt = [new deps.SystemMessage(systemPrompt(ctx.session)), ...sanitizeAndTrimHistory(state.messages)];
   const res = await bound.invoke(prompt);
   const turns = (state.turns || 0) + 1;
   const toolCalls = res.tool_calls || [];
@@ -470,6 +555,7 @@ async function drive(session, emit, io, threadId, input) {
   } catch (e) {
     session.agent.status = 'error';
     logLine(session.id, 'model', 'خطای گراف ایجنت: ' + e.message, 'err');
+    try { resetGraphThread(session); } catch {}
     return { status: 'error', error: e };
   }
 

@@ -1,5 +1,8 @@
 node_modules/
-.data/
-.env
-*.log
+build/
+dist/
+coverage/
 .DS_Store
+*.log
+.env*
+!.env.example

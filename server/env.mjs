@@ -6,8 +6,10 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const FILE = path.resolve('.env');
+const DIR = path.dirname(fileURLToPath(import.meta.url));
+const FILE = path.resolve(DIR, '../.env');
 
 export function loadEnv(file = FILE) {
   let text;

@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 import './env.mjs';
 
-import { createSession, getSession } from './store.mjs';
+import { createSession, getSession, listSessions, deleteSession } from './store.mjs';
 import {
   greet,
   handleChat,
@@ -37,8 +37,8 @@ import {
   flushAllSays,
 } from './orchestrator.mjs';
 import { analyzeFromZip } from './intake.mjs';
-import { saveProject, fileTree, readFile as readWorkspaceFile, exportZip } from './workspace.mjs';
-import { getRun, snapshot, listDeployments, stopDeployment, staticRoot, onRunFinished, onRunFailed, getRunByApp, restartWithCurrentSource } from './deploy.mjs';
+import { saveProject, fileTree, readFile as readWorkspaceFile, writeFile as writeWorkspaceFile, exportZip } from './workspace.mjs';
+import { getRun, snapshot, listDeployments, stopDeployment, staticRoot, onRunFinished, onRunFailed, getRunByApp, restartWithCurrentSource, createRun, advance } from './deploy.mjs';
 import { appFromHost, proxyToApp, previewDomain } from './preview.mjs';
 import { llmInfo, llmStatus, checkProvider } from './llm.mjs';
 import { PLAN_CATALOG } from './plans.mjs';
@@ -53,8 +53,8 @@ const MOCK_DIR = path.join(ROOT, 'mock');
 const WIDGET_DIR = path.join(ROOT, 'widget');
 const AGENT_DIR = path.join(ROOT, 'agent-ui');
 const TEST_PROJECTS_DIR = path.join(ROOT, 'test-projects');
-const PORT = Number(process.env.PORT || 4173);
-const HOST = process.env.HOST || '127.0.0.1';
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || '0.0.0.0';
 const MAX_UPLOAD = 60 * 1024 * 1024;
 
 const MIME = {
@@ -469,7 +469,11 @@ async function routeApi(req, res, url, urlPath) {
     return json(res, 200, { account: publicAccount(account), plan: planStatus(account) });
   }
 
-  /* --- سشن --- */
+  /* --- سشن و تاریخچه --- */
+  if (urlPath === '/api/sessions' && req.method === 'GET') {
+    return json(res, 200, { sessions: listSessions() });
+  }
+
   if (urlPath === '/api/session' && req.method === 'POST') {
     const body = await readJson(req);
     let session = getSession(body.sessionId);
@@ -482,6 +486,12 @@ async function routeApi(req, res, url, urlPath) {
     if (body.accountId) linkSession(session, body.accountId);
     reconcileSession(session);
     return json(res, 200, { sessionId: session.id, isNew, state: { ...sessionState(session), deploy: deployState(session) } });
+  }
+
+  if (urlPath.startsWith('/api/session/') && req.method === 'DELETE') {
+    const id = urlPath.slice('/api/session/'.length);
+    const deleted = deleteSession(id);
+    return json(res, deleted ? 200 : 404, { ok: deleted });
   }
 
   if (urlPath.startsWith('/api/session/') && req.method === 'GET') {
@@ -583,27 +593,89 @@ async function routeApi(req, res, url, urlPath) {
     return;
   }
 
-  /* --- فضای کاری پروژه (برای ابزارهای ایجنت و دانلود تغییرها) --- */
-  if (urlPath.startsWith('/api/project/') && req.method === 'GET') {
+  /* --- فضای کاری پروژه (خواندن، نوشتن فایل‌ها، دانلود، دیپلوی مجدد) --- */
+  if (urlPath === '/api/sample-projects' && req.method === 'GET') {
+    const indexPath = path.join(TEST_PROJECTS_DIR, 'dist', 'index.json');
+    try {
+      const data = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+      return json(res, 200, data);
+    } catch {
+      return json(res, 200, { projects: [] });
+    }
+  }
+
+  if (urlPath.startsWith('/api/project/')) {
     const rest = urlPath.slice('/api/project/'.length);
     const [sessionId, action] = rest.split('/');
     const session = getSession(sessionId);
     if (!session) return json(res, 404, { error: 'سشن پیدا نشد' });
 
-    if (action === 'tree') return json(res, 200, { files: fileTree(session.id) });
-    if (action === 'file') {
-      const rel = url.searchParams.get('path') || '';
-      try {
-        return json(res, 200, { file: readWorkspaceFile(session.id, rel) });
-      } catch (e) {
-        return json(res, 400, { error: e.message });
+    if (req.method === 'GET') {
+      if (action === 'tree') return json(res, 200, { files: fileTree(session.id) });
+      if (action === 'file') {
+        const rel = url.searchParams.get('path') || '';
+        try {
+          return json(res, 200, { file: readWorkspaceFile(session.id, rel) });
+        } catch (e) {
+          return json(res, 400, { error: e.message });
+        }
+      }
+      if (action === 'download') {
+        const zip = exportZip(session.id);
+        res.writeHead(200, { 'content-type': 'application/zip', 'content-disposition': 'attachment; filename="lia-project.zip"' });
+        return res.end(zip);
       }
     }
-    if (action === 'download') {
-      const zip = exportZip(session.id);
-      res.writeHead(200, { 'content-type': 'application/zip', 'content-disposition': 'attachment; filename="lia-project.zip"' });
-      return res.end(zip);
+
+    if (req.method === 'POST') {
+      if (action === 'file') {
+        try {
+          const body = await readJson(req);
+          const relPath = String(body.path || '').trim();
+          const content = String(body.content ?? '');
+          if (!relPath) return json(res, 400, { error: 'مسیر فایل ارسال نشده است' });
+
+          const stats = writeWorkspaceFile(session.id, relPath, content);
+          snapshotVersion(session.id, relPath, content);
+          logLine(session.id, 'workspace', `فایل ${relPath} توسط کاربر ویرایش و ذخیره شد (${stats.bytes} بایت)`, 'ok');
+          return json(res, 200, { success: true, path: relPath, bytes: stats.bytes });
+        } catch (err) {
+          return json(res, 400, { error: err.message });
+        }
+      }
+
+      if (action === 'redeploy') {
+        try {
+          const existingRun = session.deployRunId ? getRun(session.deployRunId) : null;
+          let run;
+          if (existingRun && existingRun.appName) {
+            run = await restartWithCurrentSource(existingRun);
+          } else {
+            run = createRun({
+              session,
+              analysis: session.analysis,
+              plan: session.quote?.plan,
+              needsDb: false,
+            });
+            session.deployRunId = run.id;
+            session.stage = 'deploying';
+            advance(run);
+          }
+          logLine(session.id, 'deploy', `دیپلوی مجدد آغاز شد: ${run.id || run.appName}`, 'ok');
+          return json(res, 200, {
+            success: true,
+            runId: run.id,
+            appName: run.appName,
+            url: run.url,
+            status: run.status,
+            steps: run.steps,
+          });
+        } catch (err) {
+          return json(res, 400, { error: err.message });
+        }
+      }
     }
+
     return json(res, 404, { error: 'مسیر پروژه نامعتبر است' });
   }
 

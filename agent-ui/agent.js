@@ -26,6 +26,11 @@
     lastEvent: 0,
     pollTimer: null,
     toolChips: new Map(),
+    currentFile: null, // { path, original, current }
+    allFiles: [],
+    activeTab: 'chat',
+    sessions: [],
+    historyOpen: false,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -47,6 +52,15 @@
     accountBtn: $('accountBtn'),
     buyBtn: $('buyBtn'),
     newChat: $('newChat'),
+    // History Drawer
+    historyToggleBtn: $('historyToggleBtn'),
+    historyCountBadge: $('historyCountBadge'),
+    historyDrawer: $('historyDrawer'),
+    historyOverlay: $('historyOverlay'),
+    historyCloseBtn: $('historyCloseBtn'),
+    historyNewBtn: $('historyNewBtn'),
+    historySearchInput: $('historySearchInput'),
+    historyList: $('historyList'),
     status: $('status'),
     login: $('loginDialog'),
     loginForm: $('loginForm'),
@@ -57,12 +71,229 @@
     months: $('months'),
     total: $('total'),
     pay: $('payBtn'),
-    fileDialog: $('fileDialog'),
-    fileName: $('fileName'),
-    fileBody: $('fileBody'),
     uploadBtn: $('uploadBtn'),
     fileInput: $('fileInput'),
+    fileSearch: $('fileSearch'),
+    openEditorBtn: $('openEditorBtn'),
+    deployAppMeta: $('deployAppMeta'),
+    deployedUrlLink: $('deployedUrlLink'),
+    quickRedeployBtn: $('quickRedeployBtn'),
+    goToPreviewTabBtn: $('goToPreviewTabBtn'),
+    // Editor elements
+    editorCurrentPath: $('editorCurrentPath'),
+    editorFileLang: $('editorFileLang'),
+    editorFileLines: $('editorFileLines'),
+    editorToggleDiffBtn: $('editorToggleDiffBtn'),
+    editorSaveBtn: $('editorSaveBtn'),
+    editorRedeployBtn: $('editorRedeployBtn'),
+    editorAiPrompt: $('editorAiPrompt'),
+    editorAiApplyBtn: $('editorAiApplyBtn'),
+    editorCodeView: $('editorCodeView'),
+    editorGutter: $('editorGutter'),
+    editorTextarea: $('editorTextarea'),
+    editorDiffView: $('editorDiffView'),
+    editorCloseDiffBtn: $('editorCloseDiffBtn'),
+    editorDiffContent: $('editorDiffContent'),
+    editorActiveBadge: $('editorActiveBadge'),
+    // Preview elements
+    previewUrlInput: $('previewUrlInput'),
+    previewCopyUrlBtn: $('previewCopyUrlBtn'),
+    previewReloadBtn: $('previewReloadBtn'),
+    previewOpenTabBtn: $('previewOpenTabBtn'),
+    previewFrameWrap: $('previewFrameWrap'),
+    previewEmptyState: $('previewEmptyState'),
+    previewIframe: $('previewIframe'),
+    previewLiveIndicator: $('previewLiveIndicator'),
+    previewStartSampleBtn: $('previewStartSampleBtn'),
+    // Logs console
+    systemLogsTerminal: $('systemLogsTerminal'),
+    clearLogsBtn: $('clearLogsBtn'),
+    copyLogsBtn: $('copyLogsBtn'),
+    // Samples
+    samplesBtn: $('samplesBtn'),
+    samplesDialog: $('samplesDialog'),
+    samplesClose: $('samplesClose'),
+    samplesListContainer: $('samplesListContainer'),
+    // Lia Hero Status Panel
+    liaHero: $('liaHero'),
+    heroImg: $('heroImg'),
+    heroBadge: $('heroBadge'),
+    heroTitle: $('heroTitle'),
+    heroSub: $('heroSub'),
+    heroBar: $('heroBar'),
+    heroBarWrap: $('heroBarWrap'),
+    heroPercent: $('heroPercent'),
+    heroStage: $('heroStage'),
+    heroTasks: $('heroTasks'),
   };
+
+  /* ---------------- انیمیشن‌ها و آواتارهای کاراکتر لیا ---------------- */
+
+  const HERO_IMAGES = {
+    welcome: '/widget/assets/lia/welcome.webp',
+    thinking: '/widget/assets/lia/thinking.webp',
+    analyzing: '/widget/assets/lia/analyzing.webp',
+    planning: '/widget/assets/lia/planning.webp',
+    working: '/widget/assets/lia/working.webp',
+    deploying: '/widget/assets/lia/deploying.webp',
+    warning: '/widget/assets/lia/warning.webp',
+    error: '/widget/assets/lia/error.webp',
+    success: '/widget/assets/lia/success.webp',
+    idea: '/widget/assets/lia/idea.webp',
+    waiting: '/widget/assets/lia/waiting.webp',
+    done: '/widget/assets/lia/done.webp',
+  };
+
+  const HERO_BADGES = {
+    welcome: 'آماده به کار',
+    thinking: 'در حال تفکر',
+    analyzing: 'تحلیل سورس',
+    planning: 'چیدن نقشه',
+    working: 'در حال تغییر فایل',
+    deploying: 'استقرار روی سرور',
+    warning: 'هشدار مهم',
+    error: 'نیاز به بررسی خطا',
+    success: 'انجام شد ✓',
+    idea: 'پیشنهاد هوشمند',
+    waiting: 'منتظر پاسخ شما',
+    done: ' آنلاین و فعال',
+  };
+
+  function setHero({ pose = 'welcome', title, sub, percent, stage, tasks } = {}) {
+    if (!el.liaHero) return;
+    const key = HERO_IMAGES[pose] ? pose : 'welcome';
+    el.liaHero.dataset.pose = key;
+    const src = HERO_IMAGES[key];
+    if (el.heroImg && el.heroImg.getAttribute('src') !== src) {
+      el.heroImg.style.opacity = '0.25';
+      el.heroImg.style.transform = 'scale(0.92)';
+      setTimeout(() => {
+        if (!el.heroImg) return;
+        el.heroImg.src = src;
+        el.heroImg.style.opacity = '1';
+        el.heroImg.style.transform = '';
+      }, 110);
+    }
+    if (el.heroBadge) el.heroBadge.textContent = HERO_BADGES[key] || 'لیا';
+    if (title !== undefined && el.heroTitle) el.heroTitle.textContent = title;
+    if (sub !== undefined && el.heroSub) el.heroSub.textContent = sub;
+
+    if (percent === null || percent === undefined) {
+      if (el.heroBarWrap) el.heroBarWrap.hidden = true;
+    } else if (el.heroBarWrap) {
+      el.heroBarWrap.hidden = false;
+      const p = Math.max(0, Math.min(100, Math.round(percent)));
+      if (el.heroBar) el.heroBar.style.width = p + '%';
+      if (el.heroPercent) el.heroPercent.textContent = faNum(p) + '٪';
+      if (stage !== undefined && el.heroStage) el.heroStage.textContent = stage;
+    }
+
+    if (Array.isArray(tasks) && el.heroTasks) {
+      el.heroTasks.innerHTML = tasks
+        .slice(0, 6)
+        .map(
+          (t) =>
+            `<span class="t ${t.done ? 'done' : t.cur ? 'cur' : ''}">` +
+            `<span class="ic">${t.done ? '✓' : t.cur ? '●' : '○'}</span>${esc(t.title)}</span>`,
+        )
+        .join('');
+    } else if (tasks === null && el.heroTasks) {
+      el.heroTasks.innerHTML = '';
+    }
+  }
+
+  function heroIdle() {
+    if (state.deploy && ['running', 'created', 'awaiting_approval', 'awaiting_fix'].includes(state.deploy.status)) {
+      return;
+    }
+    setHero({
+      pose: 'welcome',
+      title: 'آماده برای ساخت، تغییر یا دیپلوی پروژه',
+      sub: 'کافی است بگویی چه می‌خواهی؛ کدها را می‌خوانم و اجرا می‌کنم.',
+      percent: null,
+      tasks: null,
+    });
+  }
+
+  function heroFromTool(ev) {
+    const label = ev.label || ev.name;
+    const map = {
+      list_files: { pose: 'analyzing', title: 'دارم ساختار پروژه را می‌خوانم…', p: 25 },
+      read_file: { pose: 'analyzing', title: 'دارم محتوای فایل را بررسی می‌کنم…', p: 38 },
+      search_files: { pose: 'analyzing', title: 'جستجو در کدهای پروژه…', p: 42 },
+      inspect_project: { pose: 'analyzing', title: 'تحلیل کامل فریم‌ورک و وابستگی‌ها…', p: 52 },
+      check_web_suitability: { pose: 'planning', title: 'بررسی سازگاری با هاست ابری…', p: 58 },
+      recommend_plan: { pose: 'idea', title: 'محاسبهٔ بهترین پلن و منابع سرور…', p: 64 },
+      write_file: { pose: 'working', title: 'در حال نوشتن و ویرایش فایل…', p: 72 },
+      edit_file: { pose: 'working', title: 'اعمال تغییر در کد پروژه…', p: 74 },
+      delete_file: { pose: 'working', title: 'حذف فایل اضافی…', p: 70 },
+      run_command: { pose: 'working', title: 'اجرای دستور در محیط ایزوله…', p: 78 },
+      adapt_for_web: { pose: 'working', title: 'آماده‌سازی خودکار پروژه برای وب…', p: 82 },
+      deploy_project: { pose: 'deploying', title: 'شروع ساخت و استقرار روی سرور…', p: 88 },
+      deploy_Status: { pose: 'deploying', title: 'بررسی وضعیت استقرار…', p: 92 },
+      ask_user: { pose: 'waiting', title: 'چند سؤال کوتاه از شما دارم', p: null },
+    };
+    const m = map[ev.name] || { pose: 'thinking', title: label, p: 45 };
+    if (ev.status === 'error') {
+      setHero({ pose: 'error', title: 'خطا در ' + label, sub: ev.summary || '', percent: null });
+    } else if (ev.status === 'done') {
+      setHero({
+        pose: m.pose,
+        title: label + ' انجام شد',
+        sub: ev.summary || 'مرحله با موفقیت کامل شد.',
+        percent: m.p ? Math.min(96, m.p + 10) : null,
+        stage: label,
+      });
+    } else {
+      setHero({
+        pose: m.pose,
+        title: m.title,
+        sub: label,
+        percent: m.p,
+        stage: label,
+      });
+      showLiveActivity({ pose: m.pose, title: m.title, sub: label });
+    }
+  }
+
+  function cardPoseHtml(pose = 'idea', badge = '') {
+    const src = HERO_IMAGES[pose] || HERO_IMAGES.idea;
+    return `
+      <div class="card-pose-art" title="${esc(badge || HERO_BADGES[pose] || 'لیا')}">
+        <img src="${src}" alt="Lia ${esc(pose)}" loading="lazy" />
+      </div>
+    `;
+  }
+
+  let liveActivityNode = null;
+  function showLiveActivity({ pose = 'thinking', title = 'لیا در حال پردازش است…', sub = 'لطفاً چند لحظه صبر کنید' } = {}) {
+    const src = HERO_IMAGES[pose] || HERO_IMAGES.thinking;
+    if (!liveActivityNode || !liveActivityNode.isConnected) {
+      liveActivityNode = document.createElement('div');
+      liveActivityNode.className = 'chat-live-activity';
+      el.msgs.appendChild(liveActivityNode);
+    }
+    liveActivityNode.innerHTML = `
+      <div class="activity-pose">
+        <img src="${src}" alt="Lia active" />
+      </div>
+      <div class="activity-meta">
+        <div class="activity-title">
+          <span>${esc(title)}</span>
+          <span class="typing-dots"><i></i><i></i><i></i></span>
+        </div>
+        <div class="activity-sub">${esc(sub)}</div>
+      </div>
+    `;
+    scrollEnd();
+  }
+
+  function hideLiveActivity() {
+    if (liveActivityNode && liveActivityNode.isConnected) {
+      liveActivityNode.remove();
+    }
+    liveActivityNode = null;
+  }
 
   /* ---------------- کمکی ---------------- */
 
@@ -282,7 +513,179 @@
 
   $('checkoutClose').addEventListener('click', () => el.checkout.close());
 
-  /* ---------------- سشن ---------------- */
+  /* ---------------- تاریخچه و سشن‌ها ---------------- */
+
+  function formatRelativeTime(ts) {
+    if (!ts) return '';
+    const diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 60) return 'همین الان';
+    if (diff < 3600) return `${Math.floor(diff / 60).toLocaleString('fa-IR')} دقیقه پیش`;
+    if (diff < 86400) return `${Math.floor(diff / 3600).toLocaleString('fa-IR')} ساعت پیش`;
+    const days = Math.floor(diff / 86400);
+    if (days < 7) return `${days.toLocaleString('fa-IR')} روز پیش`;
+    return new Date(ts).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' });
+  }
+
+  async function loadHistorySessions() {
+    try {
+      const data = await api('/api/sessions');
+      state.sessions = Array.isArray(data?.sessions) ? data.sessions : [];
+      if (el.historyCountBadge) {
+        el.historyCountBadge.textContent = state.sessions.length.toLocaleString('fa-IR');
+        el.historyCountBadge.hidden = !state.sessions.length;
+      }
+      renderHistoryList(state.sessions);
+    } catch {
+      if (el.historyList) el.historyList.innerHTML = '<div class="empty">تاریخچه موقتاً در دسترس نیست</div>';
+    }
+  }
+
+  function renderHistoryList(sessionsToRender) {
+    if (!el.historyList) return;
+    const query = (el.historySearchInput?.value || '').trim().toLowerCase();
+    const filtered = query
+      ? sessionsToRender.filter((s) =>
+          (s.title || '').toLowerCase().includes(query) ||
+          (s.appName || '').toLowerCase().includes(query) ||
+          (s.lastMessage || '').toLowerCase().includes(query) ||
+          (s.platform || '').toLowerCase().includes(query),
+        )
+      : sessionsToRender;
+
+    if (!filtered.length) {
+      el.historyList.innerHTML = query
+        ? '<div class="empty">هیچ گفتگویی با این عبارت پیدا نشد.</div>'
+        : '<div class="empty">هنوز هیچ گفتگویی ثبت نشده است.</div>';
+      return;
+    }
+
+    el.historyList.innerHTML = filtered
+      .map((s) => {
+        const isActive = s.id === state.sessionId;
+        const deployBadge = s.deployStatus === 'success'
+          ? '<span class="history-badge deploy-ok">✓ مستقر شده</span>'
+          : s.deployStatus === 'deploying'
+            ? '<span class="history-badge" style="color:#93c5fd;border-color:#3b82f6">در حال استقرار</span>'
+            : s.deployStatus === 'failed'
+              ? '<span class="history-badge deploy-fail">خطای استقرار</span>'
+              : '';
+        const platformBadge = s.platform ? `<span class="history-badge">${esc(s.platform)}</span>` : '';
+        const activeBadge = isActive ? '<span class="history-badge active-indicator">فعال</span>' : '';
+        const previewText = s.lastMessage ? esc(s.lastMessage) : (s.appName ? `پروژهٔ ${esc(s.appName)}` : 'بدون پیام');
+
+        return `
+          <div class="history-card ${isActive ? 'active' : ''}" data-id="${esc(s.id)}">
+            <div class="history-card-top">
+              <span class="history-card-title">${esc(s.title || 'گفتگوی تازه')}</span>
+              <button class="history-delete-btn" data-del="${esc(s.id)}" title="حذف این گفتگو">🗑️</button>
+            </div>
+            <div class="history-card-preview">${previewText}</div>
+            <div class="history-card-foot">
+              <div class="history-card-badges">
+                ${activeBadge}
+                ${platformBadge}
+                ${deployBadge}
+                <span class="history-badge">${(s.messageCount || 0).toLocaleString('fa-IR')} پیام</span>
+              </div>
+              <span class="history-time">${formatRelativeTime(s.updatedAt || s.createdAt)}</span>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    // کلیک روی کارت برای سوئیچ سشن
+    el.historyList.querySelectorAll('.history-card').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-del]')) return;
+        switchSession(card.dataset.id);
+      });
+    });
+
+    // کلیک دکمه حذف سشن
+    el.historyList.querySelectorAll('[data-del]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.del;
+        if (!confirm('آیا این گفتگو و تاریخچهٔ آن حذف شود؟')) return;
+        try {
+          await api(`/api/session/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          toast('گفتگو با موفقیت حذف شد.');
+          if (id === state.sessionId) {
+            await startSession(null);
+          }
+          await loadHistorySessions();
+        } catch (err) {
+          toast('خطا در حذف گفتگو: ' + err.message);
+        }
+      });
+    });
+  }
+
+  function openHistory() {
+    if (!el.historyDrawer || !el.historyOverlay) return;
+    state.historyOpen = true;
+    el.historyOverlay.hidden = false;
+    requestAnimationFrame(() => {
+      el.historyOverlay.classList.add('open');
+      el.historyDrawer.classList.add('open');
+      el.historyDrawer.setAttribute('aria-hidden', 'false');
+    });
+    loadHistorySessions();
+  }
+
+  function closeHistory() {
+    if (!el.historyDrawer || !el.historyOverlay) return;
+    state.historyOpen = false;
+    el.historyDrawer.classList.remove('open');
+    el.historyOverlay.classList.remove('open');
+    el.historyDrawer.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      if (!state.historyOpen) el.historyOverlay.hidden = true;
+    }, 280);
+  }
+
+  function toggleHistory() {
+    if (state.historyOpen) closeHistory();
+    else openHistory();
+  }
+
+  async function switchSession(targetSessionId) {
+    if (!targetSessionId) return;
+    if (targetSessionId === state.sessionId) {
+      closeHistory();
+      return;
+    }
+    closeHistory();
+    stopPolling();
+    state.deploy = null;
+    state.currentFile = null;
+    try {
+      const data = await api(`/api/session/${encodeURIComponent(targetSessionId)}`);
+      state.sessionId = targetSessionId;
+      localStorage.setItem(LS_SESSION, targetSessionId);
+      renderSession(data.state);
+      toast('گفتگوی انتخاب‌شده بارگذاری شد.');
+      loadHistorySessions();
+    } catch (err) {
+      toast('خطا در بارگذاری گفتگو: ' + err.message);
+    }
+  }
+
+  if (el.historyToggleBtn) el.historyToggleBtn.addEventListener('click', toggleHistory);
+  if (el.historyCloseBtn) el.historyCloseBtn.addEventListener('click', closeHistory);
+  if (el.historyOverlay) el.historyOverlay.addEventListener('click', closeHistory);
+  if (el.historyNewBtn) {
+    el.historyNewBtn.addEventListener('click', () => {
+      closeHistory();
+      el.newChat.click();
+    });
+  }
+  if (el.historySearchInput) {
+    el.historySearchInput.addEventListener('input', () => renderHistoryList(state.sessions));
+  }
+
+  /* ---------------- راه‌اندازی سشن ---------------- */
 
   async function boot() {
     const savedAccount = localStorage.getItem(LS_ACCOUNT);
@@ -301,6 +704,7 @@
 
     const saved = localStorage.getItem(LS_SESSION);
     await startSession(saved);
+    await loadHistorySessions();
     if (!state.accountId) setTimeout(() => openLogin(), 600);
   }
 
@@ -312,6 +716,7 @@
     state.sessionId = data.sessionId;
     localStorage.setItem(LS_SESSION, state.sessionId);
     renderSession(data.state);
+    loadHistorySessions();
   }
 
   el.newChat.addEventListener('click', async () => {
@@ -383,9 +788,24 @@
       return;
     }
     if (msg.id) state.seen.add(msg.id);
+    hideLiveActivity();
     const wrap = document.createElement('div');
-    wrap.className = 'msg ' + (msg.role === 'user' ? 'user' : 'lia');
-    wrap.innerHTML = `<div class="avatar">${msg.role === 'user' ? 'تو' : 'لیا'}</div><div class="bubble">${md(msg.text)}</div>`;
+    const isUser = msg.role === 'user';
+    wrap.className = 'msg ' + (isUser ? 'user' : 'lia');
+    wrap.innerHTML = `
+      <div class="msg-header">
+        <div class="avatar">
+          ${
+            isUser
+              ? '<span class="avatar-icon">👤</span>'
+              : '<img src="/widget/assets/lia/avatar.webp" alt="لیا" class="msg-avatar-pic" />'
+          }
+          <span class="avatar-name">${isUser ? 'شما' : 'لیا'}</span>
+          ${!isUser ? '<span class="avatar-tag">دستیار هوشمند ابری</span>' : ''}
+        </div>
+      </div>
+      <div class="bubble">${md(msg.text)}</div>
+    `;
     el.msgs.appendChild(wrap);
     scrollEnd();
   }
@@ -393,34 +813,87 @@
   function addUserBubble(text) {
     const wrap = document.createElement('div');
     wrap.className = 'msg user';
-    wrap.innerHTML = `<div class="avatar">تو</div><div class="bubble">${md(text)}</div>`;
+    wrap.innerHTML = `
+      <div class="msg-header">
+        <div class="avatar">
+          <span class="avatar-icon">👤</span>
+          <span class="avatar-name">شما</span>
+        </div>
+      </div>
+      <div class="bubble">${md(text)}</div>
+    `;
     el.msgs.appendChild(wrap);
     scrollEnd();
   }
 
+  const CARD_POSE_MAP = {
+    chips: 'welcome',
+    repair: 'working',
+    repair_result: 'success',
+    modes: 'idea',
+    plan: 'idea',
+    step: 'planning',
+    analysis: 'analyzing',
+    intake: 'waiting',
+    approval: 'waiting',
+    bug: 'error',
+    deploy_plan: 'planning',
+    reuse: 'idea',
+    tool_approval: 'warning',
+    ask: 'waiting',
+    suitability: 'planning',
+    adaptation_result: 'success',
+    summary: 'done',
+  };
+
   function renderCard(card) {
+    hideLiveActivity();
     const wrap = document.createElement('div');
-    wrap.className = 'msg lia';
+    wrap.className = 'msg lia card-msg';
     const box = document.createElement('div');
     box.className = 'card';
     wrap.appendChild(box);
     el.msgs.appendChild(wrap);
 
+    const pose = CARD_POSE_MAP[card.kind] || 'idea';
+    if (card.kind === 'analysis') {
+      setHero({ pose: 'analyzing', title: `پروژهٔ ${card.platform || ''} تحلیل شد`, sub: 'آماده برای برنامه‌ریزی و استقرار', percent: 55, stage: 'تحلیل کامل شد' });
+    } else if (card.kind === 'plan') {
+      setHero({ pose: 'idea', title: `پیشنهاد پلن ${card.planName || ''}`, sub: 'منابع بهینه بر اساس ساختار پروژه شما', percent: null });
+    } else if (card.kind === 'approval' || card.kind === 'tool_approval' || card.kind === 'ask') {
+      setHero({ pose: 'waiting', title: 'منتظر تأیید یا پاسخ شما هستم', sub: card.title || 'یک تصمیم برای ادامه نیاز است', percent: null });
+    } else if (card.kind === 'bug' || card.kind === 'repair') {
+      setHero({ pose: 'error', title: 'خطا شناسایی شد — آماده رفع خودکار', sub: card.stepTitle || 'دیباگ هوشمند لیا', percent: null });
+    } else if (card.kind === 'summary') {
+      setHero({ pose: 'done', title: 'استقرار با موفقیت به پایان رسید 🎉', sub: card.summary?.url || 'اپلیکیشن شما آنلاین است', percent: 100, stage: 'تکمیل شد' });
+    }
+
     const build = CARD_BUILDERS[card.kind];
-    if (build) build(box, card);
+    if (build) build(box, card, pose);
     else box.innerHTML = `<h4>${esc(card.title || card.kind)}</h4><div class="sub">${esc(JSON.stringify(card).slice(0, 300))}</div>`;
     scrollEnd();
     return box;
   }
 
   const CARD_BUILDERS = {
-    chips(box, card) {
-      box.innerHTML = `<h4>${esc(card.title || '')}</h4><div class="row"></div>`;
-      const row = box.querySelector('.row');
+    chips(box, card, pose = 'welcome') {
+      box.innerHTML = `
+        <div class="card-head-with-pose">
+          ${cardPoseHtml(pose, 'پیشنهاد شروع')}
+          <div class="card-head-body">
+            <div class="card-head">
+              <h4><span class="card-head-icon">⚡</span> ${esc(card.title || 'از کجا شروع کنیم؟')}</h4>
+            </div>
+            <div class="sub">یکی از گزینه‌های زیر را انتخاب کن یا درخواستت را بنویس:</div>
+          </div>
+        </div>
+        <div class="card-chips"></div>
+      `;
+      const row = box.querySelector('.card-chips');
       for (const item of card.items || []) {
         const b = document.createElement('button');
         b.className = 'chip';
-        b.textContent = item.label;
+        b.innerHTML = `<span class="chip-spark">›</span> <span>${esc(item.label)}</span>`;
         b.onclick = () =>
           item.action === 'answer' || item.action === 'chat_send' ? send(item.value || item.label) : act(item.action, { value: item.value });
         row.appendChild(b);
@@ -487,12 +960,17 @@
       }
     },
 
-    plan(box, card) {
+    plan(box, card, pose = 'idea') {
       const c = card.cost || {};
       const s = card.specs || {};
       box.innerHTML = `
-        <h4>${esc(card.title || 'پیشنهاد پلن')}</h4>
-        <div class="price">${esc(card.planName)} — ${fmt(c.monthlyTotal)} <small>/ ماه</small></div>
+        <div class="card-head-with-pose">
+          ${cardPoseHtml(pose, 'پیشنهاد پلن')}
+          <div class="card-head-body">
+            <h4>${esc(card.title || 'پیشنهاد پلن')}</h4>
+            <div class="price">${esc(card.planName)} — ${fmt(c.monthlyTotal)} <small>/ ماه</small></div>
+          </div>
+        </div>
         <div class="specs"><span>RAM ${esc(s.ram)}GB</span><span>${esc(s.vcpu)} vCPU</span><span>دیسک ${esc(s.disk)}GB</span></div>
         <div class="sub">جمع ${fmt(c.months)} ماه: <b style="color:var(--accent-2)">${fmt(c.periodTotal)} تومان</b></div>
         <div class="btns">
@@ -513,14 +991,19 @@
         <div class="btns"><a class="btn ghost" href="${esc(st.route || '/')}" target="_blank" rel="noopener">برو به این صفحه</a></div>`;
     },
 
-    analysis(box, card) {
+    analysis(box, card, pose = 'analyzing') {
       const findings = card.findings || [];
       box.innerHTML = `
-        <h4>پروژه را خواندم</h4>
-        <div class="specs">
-          <span>پلتفرم ${esc(card.platform)}</span>
-          <span>${fmt(card.stats?.fileCount)} فایل</span>
-          ${card.port ? `<span>پورت ${esc(card.port)}</span>` : ''}
+        <div class="card-head-with-pose">
+          ${cardPoseHtml(pose, 'تحلیل پروژه')}
+          <div class="card-head-body">
+            <h4>پروژه را خواندم و تحلیل کردم</h4>
+            <div class="specs">
+              <span>پلتفرم ${esc(card.platform)}</span>
+              <span>${fmt(card.stats?.fileCount)} فایل</span>
+              ${card.port ? `<span>پورت ${esc(card.port)}</span>` : ''}
+            </div>
+          </div>
         </div>
         ${card.build ? `<div class="sub">build: <code>${esc(card.build)}</code></div>` : ''}
         ${findings.length ? '<div class="sub" style="margin-top:8px">نکته‌ها:</div>' : ''}
@@ -538,14 +1021,19 @@
       box.querySelector('[data-up]').onclick = () => el.fileInput.click();
     },
 
-    approval(box, card) {
+    approval(box, card, pose = 'waiting') {
       const a = card.approval || {};
       // کارت‌های تأیید قبلی دیگر معتبر نیستند؛ دکمه‌هایشان خاموش شود
       lockApprovalButtons();
       box.innerHTML = `
-        <div class="sub">مرحلهٔ ${fmt((a.index || 0) + 1)} از ${fmt(a.total || 0)}</div>
-        <h4>${esc(a.title)}</h4>
-        <div class="sub">${esc(a.detail)}</div>
+        <div class="card-head-with-pose">
+          ${cardPoseHtml(pose, 'منتظر تأیید')}
+          <div class="card-head-body">
+            <div class="sub">مرحلهٔ ${fmt((a.index || 0) + 1)} از ${fmt(a.total || 0)}</div>
+            <h4>${esc(a.title)}</h4>
+            <div class="sub">${esc(a.detail)}</div>
+          </div>
+        </div>
         <div class="sub" style="color:var(--warn)">اثر: ${esc(a.effect)}</div>
         <div class="btns">
           <button class="btn primary" data-yes>انجام بده</button>
@@ -791,10 +1279,12 @@
       chip.innerHTML = `<span class="spin"></span><span>${esc(ev.label || ev.name)}…</span>`;
       el.msgs.appendChild(chip);
       state.toolChips.set(ev.name, chip);
+      heroFromTool(ev);
       scrollEnd();
       return;
     }
     const chip = state.toolChips.get(ev.name);
+    heroFromTool(ev);
     if (!chip) return;
     chip.classList.add(ev.status === 'error' ? 'error' : 'done');
     chip.innerHTML = `<span class="spin"></span><span>${esc(ev.label || ev.name)}</span>${ev.summary ? `<span style="opacity:.7">— ${esc(ev.summary)}</span>` : ''}`;
@@ -823,12 +1313,30 @@
         applyState(ev.state);
         break;
       case 'typing':
-        if (ev.on) el.status.textContent = 'لیا دارد فکر می‌کند…';
+        if (ev.on) {
+          el.status.textContent = 'لیا دارد فکر می‌کند…';
+          setHero({
+            pose: 'thinking',
+            title: 'لیا دارد فکر می‌کند…',
+            sub: 'در حال بررسی درخواست و انتخاب بهترین اقدام',
+            percent: 20,
+            stage: 'پردازش هوشمند',
+          });
+          showLiveActivity({
+            pose: 'thinking',
+            title: 'لیا دارد فکر می‌کند…',
+            sub: 'در حال تحلیل و آماده‌سازی پاسخ',
+          });
+        } else {
+          hideLiveActivity();
+        }
         break;
       case 'navigate':
         if (ev.url) window.open(ev.url, '_blank');
         break;
       case 'error':
+        hideLiveActivity();
+        setHero({ pose: 'error', title: 'خطا در اجرای عملیات', sub: ev.message || 'خطایی رخ داد', percent: null });
         toast(ev.message || 'خطا');
         break;
       default:
@@ -846,15 +1354,39 @@
     el.input.value = '';
     el.input.style.height = 'auto';
 
+    setHero({
+      pose: 'thinking',
+      title: 'در حال بررسی پیام شما…',
+      sub: value.slice(0, 70),
+      percent: 15,
+      stage: 'دریافت پیام',
+    });
+    showLiveActivity({
+      pose: 'thinking',
+      title: 'لیا در حال بررسی پیام شماست…',
+      sub: value.slice(0, 65),
+    });
+
     try {
       await sse('/api/chat', { sessionId: state.sessionId, text: value }, handleEvent);
     } catch (err) {
+      setHero({ pose: 'error', title: 'ارتباط با سرور برقرار نشد', sub: err.message, percent: null });
       toast('ارتباط با سرور برقرار نشد: ' + err.message);
     } finally {
+      hideLiveActivity();
       state.busy = false;
       state.pendingUser = null;
       el.send.disabled = false;
+      if (el.liaHero?.dataset.pose === 'thinking') {
+        setHero({
+          pose: 'success',
+          title: 'پاسخ آماده شد ✓',
+          sub: 'می‌توانید ادامه دهید یا مرحلهٔ بعد را انتخاب کنید.',
+          percent: null,
+        });
+      }
       startPolling();
+      loadHistorySessions();
     }
   }
 
@@ -874,6 +1406,7 @@
     clearTimeout(state.busyTimer);
     state.busyTimer = setTimeout(() => {
       if (state.busy) {
+        hideLiveActivity();
         state.busy = false;
         el.send.disabled = false;
         toast('درخواست قبلی طولانی شد؛ صفحه آزاد شد. اگر مرحله انجام نشد دوباره بزن.');
@@ -890,11 +1423,33 @@
     state.busy = true;
     armBusyWatchdog();
     el.send.disabled = true;
+    const poseByAction = {
+      start_deploy: 'deploying',
+      redeploy: 'deploying',
+      approve: 'deploying',
+      deploy_autofix: 'working',
+      fix: 'working',
+      suitability_apply: 'working',
+    };
+    const nextPose = poseByAction[name] || 'working';
+    setHero({
+      pose: nextPose,
+      title: nextPose === 'deploying' ? 'در حال اجرای مراحل استقرار…' : 'در حال انجام عملیات…',
+      sub: payload.title || name,
+      percent: nextPose === 'deploying' ? 40 : 30,
+      stage: payload.title || 'اجرای دستور',
+    });
+    showLiveActivity({
+      pose: nextPose,
+      title: nextPose === 'deploying' ? 'لیا در حال استقرار پروژه است…' : 'لیا در حال انجام عملیات…',
+      sub: payload.title || name,
+    });
     try {
       await sse('/api/action', { sessionId: state.sessionId, action: name, payload }, handleEvent);
     } catch (err) {
       toast(err.message);
     } finally {
+      hideLiveActivity();
       state.busy = false;
       clearTimeout(state.busyTimer);
       el.send.disabled = false;
@@ -918,42 +1473,471 @@
     el.input.style.height = Math.min(180, el.input.scrollHeight) + 'px';
   });
 
-  /* ---------------- فایل‌ها ---------------- */
+  /* ---------------- تب‌ها (Tabs Navigation) ---------------- */
+
+  function switchTab(tabName) {
+    state.activeTab = tabName;
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabName));
+    document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+    const target = $('view' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    if (target) target.classList.add('active');
+
+    if (tabName === 'editor') {
+      if (state.currentFile) updateGutter();
+    }
+    if (tabName === 'logs' && el.systemLogsTerminal) {
+      el.systemLogsTerminal.scrollTop = el.systemLogsTerminal.scrollHeight;
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  if (el.openEditorBtn) {
+    el.openEditorBtn.addEventListener('click', () => {
+      if (!state.currentFile && state.allFiles.length) {
+        openFileInEditor(state.allFiles[0]);
+      } else {
+        switchTab('editor');
+      }
+    });
+  }
+
+  if (el.goToPreviewTabBtn) {
+    el.goToPreviewTabBtn.addEventListener('click', () => switchTab('preview'));
+  }
+
+  /* ---------------- مدیریت فایل‌ها و استودیوی کد ---------------- */
+
+  function getFileIcon(path) {
+    const ext = path.split('.').pop().toLowerCase();
+    if (['js', 'mjs', 'cjs'].includes(ext)) return '🟨';
+    if (['ts', 'tsx'].includes(ext)) return '🔷';
+    if (['jsx'].includes(ext)) return '⚛️';
+    if (['json'].includes(ext)) return '📋';
+    if (['html'].includes(ext)) return '🌐';
+    if (['css'].includes(ext)) return '🎨';
+    if (['py'].includes(ext)) return '🐍';
+    if (['php'].includes(ext)) return '🐘';
+    if (['md'].includes(ext)) return '📝';
+    return '📄';
+  }
+
+  function getFileLang(path) {
+    const ext = path.split('.').pop().toLowerCase();
+    const map = {
+      js: 'JAVASCRIPT', mjs: 'JAVASCRIPT', ts: 'TYPESCRIPT', tsx: 'REACT TSX',
+      jsx: 'REACT JSX', json: 'JSON', html: 'HTML', css: 'CSS', py: 'PYTHON',
+      php: 'PHP', md: 'MARKDOWN', sh: 'SHELL'
+    };
+    return map[ext] || ext.toUpperCase();
+  }
 
   async function loadFiles() {
     if (!state.sessionId) return;
     try {
       const data = await api(`/api/project/${encodeURIComponent(state.sessionId)}/tree`);
-      const files = (data.files || []).slice(0, 400);
-      if (!files.length) {
-        el.files.innerHTML = '<div class="empty">هنوز پروژه‌ای آپلود نشده</div>';
+      state.allFiles = (data.files || []).slice(0, 500);
+      renderFileList(state.allFiles);
+      if (state.allFiles.length) {
+        el.download.href = `/api/project/${encodeURIComponent(state.sessionId)}/download`;
+        el.download.classList.remove('disabled');
+      } else {
         el.download.classList.add('disabled');
-        return;
       }
-      el.files.innerHTML = files
-        .map((p) => `<div class="row" data-path="${esc(p)}" title="${esc(p)}"><span class="ico">▤</span>${esc(p)}</div>`)
-        .join('');
-      el.files.querySelectorAll('.row').forEach((row) => {
-        row.onclick = () => openFile(row.dataset.path);
-      });
-      el.download.href = `/api/project/${encodeURIComponent(state.sessionId)}/download`;
-      el.download.classList.remove('disabled');
     } catch {
       /* ignore */
     }
   }
 
-  async function openFile(path) {
+  function renderFileList(files) {
+    if (!files.length) {
+      el.files.innerHTML = '<div class="empty">هنوز پروژه‌ای آپلود نشده است</div>';
+      return;
+    }
+    const query = (el.fileSearch?.value || '').toLowerCase().trim();
+    const filtered = query ? files.filter((p) => p.toLowerCase().includes(query)) : files;
+
+    if (!filtered.length) {
+      el.files.innerHTML = '<div class="empty">فایلی مطابق جستجو پیدا نشد</div>';
+      return;
+    }
+
+    el.files.innerHTML = filtered
+      .map((p) => {
+        const isActive = state.currentFile && state.currentFile.path === p;
+        return `<div class="row ${isActive ? 'active' : ''}" data-path="${esc(p)}" title="${esc(p)}">
+          <span class="icon">${getFileIcon(p)}</span>
+          <span class="path">${esc(p)}</span>
+        </div>`;
+      })
+      .join('');
+
+    el.files.querySelectorAll('.row').forEach((row) => {
+      row.onclick = () => openFileInEditor(row.dataset.path);
+    });
+  }
+
+  if (el.fileSearch) {
+    el.fileSearch.addEventListener('input', () => renderFileList(state.allFiles));
+  }
+
+  async function openFileInEditor(filePath) {
     try {
-      const data = await api(`/api/project/${encodeURIComponent(state.sessionId)}/file?path=${encodeURIComponent(path)}`);
-      el.fileName.textContent = data.file.path;
-      el.fileBody.textContent = data.file.text + (data.file.truncated ? '\n…(کوتاه شد)' : '');
-      el.fileDialog.showModal();
+      const data = await api(`/api/project/${encodeURIComponent(state.sessionId)}/file?path=${encodeURIComponent(filePath)}`);
+      const text = data.file.text || '';
+      state.currentFile = {
+        path: filePath,
+        original: text,
+        current: text,
+      };
+
+      if (el.editorCurrentPath) el.editorCurrentPath.textContent = filePath;
+      if (el.editorFileLang) el.editorFileLang.textContent = getFileLang(filePath);
+      if (el.editorActiveBadge) el.editorActiveBadge.hidden = false;
+      if (el.editorTextarea) {
+        el.editorTextarea.value = text;
+        updateGutter();
+      }
+      if (el.editorSaveBtn) el.editorSaveBtn.disabled = true;
+
+      // هایلایت ردیف انتخاب شده در سایدبار
+      el.files.querySelectorAll('.row').forEach((r) => {
+        r.classList.toggle('active', r.dataset.path === filePath);
+      });
+
+      // نمایش نمای ادیتور و مخفی کردن دیف
+      if (el.editorCodeView) el.editorCodeView.hidden = false;
+      if (el.editorDiffView) el.editorDiffView.hidden = true;
+
+      switchTab('editor');
     } catch (err) {
-      toast(err.message);
+      toast('خطا در باز کردن فایل: ' + err.message);
     }
   }
-  $('fileClose').addEventListener('click', () => el.fileDialog.close());
+
+  function updateGutter() {
+    if (!el.editorTextarea || !el.editorGutter) return;
+    const lines = (el.editorTextarea.value || '').split('\n').length;
+    let numbers = '';
+    for (let i = 1; i <= lines; i++) numbers += i + '\n';
+    el.editorGutter.textContent = numbers;
+    if (el.editorFileLines) el.editorFileLines.textContent = `${lines.toLocaleString('fa-IR')} سطر`;
+  }
+
+  if (el.editorTextarea) {
+    el.editorTextarea.addEventListener('input', () => {
+      updateGutter();
+      if (state.currentFile) {
+        state.currentFile.current = el.editorTextarea.value;
+        const changed = state.currentFile.current !== state.currentFile.original;
+        if (el.editorSaveBtn) el.editorSaveBtn.disabled = !changed;
+      }
+    });
+
+    el.editorTextarea.addEventListener('scroll', () => {
+      if (el.editorGutter) el.editorGutter.scrollTop = el.editorTextarea.scrollTop;
+    });
+
+    // تب‌گذاری با کلید Tab
+    el.editorTextarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = el.editorTextarea.selectionStart;
+        const end = el.editorTextarea.selectionEnd;
+        el.editorTextarea.value = el.editorTextarea.value.substring(0, start) + '  ' + el.editorTextarea.value.substring(end);
+        el.editorTextarea.selectionStart = el.editorTextarea.selectionEnd = start + 2;
+        updateGutter();
+        if (state.currentFile) {
+          state.currentFile.current = el.editorTextarea.value;
+          el.editorSaveBtn.disabled = false;
+        }
+      }
+    });
+  }
+
+  // دکمه ذخیره فایل
+  if (el.editorSaveBtn) {
+    el.editorSaveBtn.addEventListener('click', async () => {
+      if (!state.currentFile) return;
+      el.editorSaveBtn.disabled = true;
+      try {
+        const res = await fetch(`${API}/api/project/${encodeURIComponent(state.sessionId)}/file`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            path: state.currentFile.path,
+            content: state.currentFile.current,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'خطا در ذخیره');
+        state.currentFile.original = state.currentFile.current;
+        toast(`✓ فایل ${state.currentFile.path} با موفقیت ذخیره شد. آماده دیپلوی مجدد.`);
+        loadFiles();
+      } catch (err) {
+        toast('ذخیره ناموفق بود: ' + err.message);
+        el.editorSaveBtn.disabled = false;
+      }
+    });
+  }
+
+  // نمایش دیف
+  function computeLineDiff(original, current) {
+    const origLines = (original || '').split('\n');
+    const currLines = (current || '').split('\n');
+    const result = [];
+    let i = 0, j = 0;
+    while (i < origLines.length || j < currLines.length) {
+      if (i < origLines.length && j < currLines.length) {
+        if (origLines[i] === currLines[j]) {
+          result.push(`  ${origLines[i]}`);
+          i++; j++;
+        } else {
+          result.push(`- ${origLines[i]}`);
+          result.push(`+ ${currLines[j]}`);
+          i++; j++;
+        }
+      } else if (i < origLines.length) {
+        result.push(`- ${origLines[i]}`);
+        i++;
+      } else {
+        result.push(`+ ${currLines[j]}`);
+        j++;
+      }
+    }
+    return result;
+  }
+
+  if (el.editorToggleDiffBtn) {
+    el.editorToggleDiffBtn.addEventListener('click', () => {
+      if (!state.currentFile) return toast('ابتدا فایلی را باز کنید.');
+      const diffView = el.editorDiffView;
+      const codeView = el.editorCodeView;
+      if (!diffView.hidden) {
+        diffView.hidden = true;
+        codeView.hidden = false;
+        el.editorToggleDiffBtn.textContent = 'نمایش دیف (Diff)';
+      } else {
+        const diffLines = computeLineDiff(state.currentFile.original, state.currentFile.current);
+        if (el.editorDiffContent) {
+          el.editorDiffContent.innerHTML = diffLines
+            .map((line) => {
+              if (line.startsWith('+')) return `<span class="diff-add">${esc(line)}</span>`;
+              if (line.startsWith('-')) return `<span class="diff-del">${esc(line)}</span>`;
+              return esc(line);
+            })
+            .join('\n');
+        }
+        diffView.hidden = false;
+        codeView.hidden = true;
+        el.editorToggleDiffBtn.textContent = 'بازگشت به کد';
+      }
+    });
+  }
+
+  if (el.editorCloseDiffBtn) {
+    el.editorCloseDiffBtn.addEventListener('click', () => {
+      if (el.editorDiffView) el.editorDiffView.hidden = true;
+      if (el.editorCodeView) el.editorCodeView.hidden = false;
+      if (el.editorToggleDiffBtn) el.editorToggleDiffBtn.textContent = 'نمایش دیف (Diff)';
+    });
+  }
+
+  // ویرایش هوشمند با لیا از داخل ادیتور
+  if (el.editorAiApplyBtn && el.editorAiPrompt) {
+    el.editorAiApplyBtn.addEventListener('click', () => {
+      const prompt = (el.editorAiPrompt.value || '').trim();
+      if (!prompt) return toast('لطفاً توضیح تغییر مورد نظرت را بنویس.');
+      if (!state.currentFile) return toast('ابتدا یک فایل انتخاب کن.');
+
+      const fullPrompt = `در فایل «${state.currentFile.path}» این تغییر را اعمال کن:\n${prompt}`;
+      el.editorAiPrompt.value = '';
+      switchTab('chat');
+      send(fullPrompt);
+    });
+
+    el.editorAiPrompt.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        el.editorAiApplyBtn.click();
+      }
+    });
+  }
+
+  // دیپلوی مجدد
+  async function triggerRedeploy() {
+    if (!state.sessionId) return;
+    toast('🚀 دیپلوی مجدد آغاز شد...');
+    try {
+      const res = await fetch(`${API}/api/project/${encodeURIComponent(state.sessionId)}/redeploy`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'خطا در دیپلوی مجدد');
+
+      state.lastEvent = 0;
+      if (data.runId) {
+        state.deploy = { id: data.runId, appName: data.appName, url: data.url, status: data.status, steps: data.steps };
+        updateDeploy(state.deploy);
+        startPolling();
+      }
+      addUserBubble('🚀 دیپلوی مجدد پروژه را انجام بده');
+      toast('دیپلوی مجدد با موفقیت فراخوانی شد');
+    } catch (err) {
+      toast('خطا: ' + err.message);
+    }
+  }
+
+  if (el.editorRedeployBtn) el.editorRedeployBtn.addEventListener('click', triggerRedeploy);
+  if (el.quickRedeployBtn) el.quickRedeployBtn.addEventListener('click', triggerRedeploy);
+
+  /* ---------------- پیش‌نمایش زنده اپ (Live Preview Iframe) ---------------- */
+
+  function updateLivePreview(url, appName) {
+    if (!url) return;
+    const targetUrl = url.startsWith('/') ? `${location.origin}${url}` : url;
+    if (el.previewUrlInput) el.previewUrlInput.value = targetUrl;
+    if (el.previewIframe) {
+      el.previewIframe.src = targetUrl;
+      el.previewIframe.hidden = false;
+    }
+    if (el.previewEmptyState) el.previewEmptyState.hidden = true;
+    if (el.previewLiveIndicator) el.previewLiveIndicator.hidden = false;
+    if (el.previewOpenTabBtn) el.previewOpenTabBtn.href = targetUrl;
+  }
+
+  if (el.previewReloadBtn && el.previewIframe) {
+    el.previewReloadBtn.addEventListener('click', () => {
+      try {
+        el.previewIframe.contentWindow?.location?.reload();
+      } catch {
+        el.previewIframe.src = el.previewIframe.src;
+      }
+      toast('پیش‌نمایش تازه شد');
+    });
+  }
+
+  if (el.previewCopyUrlBtn && el.previewUrlInput) {
+    el.previewCopyUrlBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(el.previewUrlInput.value).then(() => toast('آدرس کپی شد'));
+    });
+  }
+
+  // کلیدهای ابعاد ویوپورت
+  document.querySelectorAll('.vp-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.vp-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const vp = btn.dataset.vp;
+      if (el.previewFrameWrap) {
+        el.previewFrameWrap.className = `preview-frame-wrap vp-${vp}`;
+      }
+    });
+  });
+
+  /* ---------------- پروژه‌های نمونه (Samples) ---------------- */
+
+  async function loadSampleProject(sampleName) {
+    toast(`در حال بارگذاری پروژه نمونه ${sampleName}…`);
+    try {
+      const res = await fetch(`/test-projects/dist/${sampleName}.zip`);
+      if (!res.ok) throw new Error('فایل نمونه پیدا نشد');
+      const blob = await res.blob();
+      const file = new File([blob], `${sampleName}.zip`, { type: 'application/zip' });
+      await upload(file);
+      if (el.samplesDialog) el.samplesDialog.close();
+      toast(`✓ پروژه ${sampleName} بارگذاری شد و تحلیل آغاز گردید`);
+    } catch (err) {
+      toast('خطا در بارگذاری نمونه: ' + err.message);
+    }
+  }
+
+  // کلیک روی چیپ‌های نمونه در سایدبار
+  document.querySelectorAll('.sample-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const sample = chip.dataset.sample;
+      if (sample) loadSampleProject(sample);
+    });
+  });
+
+  if (el.previewStartSampleBtn) {
+    el.previewStartSampleBtn.addEventListener('click', () => loadSampleProject('nextjs-shop'));
+  }
+
+  // باز کردن مدال نمونه‌ها
+  if (el.samplesBtn) {
+    el.samplesBtn.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/sample-projects');
+        const data = await res.json();
+        const list = data.projects || [];
+        if (el.samplesListContainer) {
+          el.samplesListContainer.innerHTML = list
+            .map(
+              (p) => `<div class="sample-card" data-sample="${esc(p.name)}">
+              <div class="sample-card-head">
+                <span class="sample-card-title">${esc(p.label || p.name)}</span>
+                <span class="sample-card-meta">${p.files} فایل · ${p.sizeKb}KB</span>
+              </div>
+              <span class="sample-card-desc">کلیک برای دانلود و استقرار آنی در فضای کاری</span>
+            </div>`
+            )
+            .join('');
+
+          el.samplesListContainer.querySelectorAll('.sample-card').forEach((card) => {
+            card.onclick = () => loadSampleProject(card.dataset.sample);
+          });
+        }
+        if (el.samplesDialog) el.samplesDialog.showModal();
+      } catch (err) {
+        toast('خطا در دریافت لیست نمونه‌ها: ' + err.message);
+      }
+    });
+  }
+
+  if (el.samplesClose && el.samplesDialog) {
+    el.samplesClose.addEventListener('click', () => el.samplesDialog.close());
+  }
+
+  // چیپ‌های پرامپت سریع در چت
+  document.querySelectorAll('.quick-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const prompt = chip.dataset.prompt;
+      if (prompt) {
+        if (el.input) {
+          el.input.value = prompt;
+          send(prompt);
+        }
+      }
+    });
+  });
+
+  /* ---------------- کنسول لاگ‌ها ---------------- */
+
+  function appendLog(line) {
+    if (!el.systemLogsTerminal) return;
+    const time = new Date().toLocaleTimeString('fa-IR');
+    el.systemLogsTerminal.textContent += `[${time}] ${line}\n`;
+    el.systemLogsTerminal.scrollTop = el.systemLogsTerminal.scrollHeight;
+  }
+
+  if (el.clearLogsBtn) {
+    el.clearLogsBtn.addEventListener('click', () => {
+      if (el.systemLogsTerminal) el.systemLogsTerminal.textContent = '';
+      toast('لاگ‌ها پاک شدند');
+    });
+  }
+
+  if (el.copyLogsBtn) {
+    el.copyLogsBtn.addEventListener('click', () => {
+      if (!el.systemLogsTerminal) return;
+      navigator.clipboard.writeText(el.systemLogsTerminal.textContent).then(() => toast('لاگ‌ها کپی شدند'));
+    });
+  }
+
+  /* ---------------- آپلود فایل ---------------- */
 
   el.uploadBtn.addEventListener('click', () => el.fileInput.click());
   el.fileInput.addEventListener('change', () => {
@@ -966,6 +1950,7 @@
     if (!/\.zip$/i.test(file.name)) return toast('فقط فایل zip قبول می‌کنم.');
     if (file.size > 55 * 1024 * 1024) return toast('حجم فایل بیش از ۵۵ مگابایت است.');
     addUserBubble(`📦 ${file.name} (${(file.size / 1048576).toFixed(1)}MB)`);
+    appendLog(`آپلود بسته ${file.name} آغاز شد...`);
     try {
       const res = await fetch(`${API}/api/intake?sessionId=${encodeURIComponent(state.sessionId)}`, {
         method: 'POST',
@@ -976,12 +1961,13 @@
       if (!res.ok) return toast(data.error || 'آپلود ناموفق بود');
       for (const ev of data.events || []) handleEvent(ev);
       loadFiles();
+      appendLog(`بسته ${file.name} با موفقیت در فضای کاری ذخیره شد.`);
     } catch (err) {
       toast('آپلود ناموفق بود: ' + err.message);
     }
   }
 
-  /* ---------------- دیپلوی ---------------- */
+  /* ---------------- دیپلوی و وضعیت ---------------- */
 
   function stopPolling() {
     if (state.pollTimer) clearInterval(state.pollTimer);
@@ -992,6 +1978,7 @@
     if (!snap) {
       state.deploy = null;
       el.deployPanel.hidden = true;
+      if (el.deployAppMeta) el.deployAppMeta.hidden = true;
       return;
     }
     state.deploy = snap;
@@ -1002,7 +1989,7 @@
       awaiting_approval: 'منتظر تأیید',
       awaiting_fix: 'منتظر تصمیم',
       stopped: 'متوقف',
-      done: 'تمام',
+      done: 'استقرار یافته (آنلاین)',
       error: 'خطا',
       unknown: 'نامشخص',
     };
@@ -1010,7 +1997,8 @@
     el.deployStatus.className = 'badge' + (snap.status === 'done' ? '' : snap.status === 'error' ? ' warn' : '');
     const done = (snap.steps || []).filter((s) => s.done).length;
     const total = snap.total || (snap.steps || []).length || 1;
-    el.deployBar.style.width = `${Math.round((done / total) * 100)}%`;
+    const pct = Math.round((done / total) * 100);
+    el.deployBar.style.width = `${pct}%`;
     el.deploySteps.innerHTML = (snap.steps || [])
       .map((s) => `<span class="${s.done ? 'done' : s.current ? 'cur' : ''}">${esc(s.title)}</span>`)
       .join('');
@@ -1018,6 +2006,63 @@
       .slice(-30)
       .map((l) => `<div class="${l.level === 'err' ? 'err' : ''}">${esc(l.text)}</div>`)
       .join('');
+
+    // همگام‌سازی انیمیشن کاراکتر لیا با وضعیت استقرار
+    const curStep = (snap.steps || []).find((s) => s.current) || (snap.steps || [])[done];
+    const heroTasks = (snap.steps || []).map((s) => ({ title: s.title, done: !!s.done, cur: !!s.current }));
+    if (snap.status === 'running' || snap.status === 'created') {
+      setHero({
+        pose: 'deploying',
+        title: curStep ? `در حال اجرا: ${curStep.title}` : 'در حال استقرار پروژه…',
+        sub: snap.appName ? `اپلیکیشن: ${snap.appName}` : 'ساخت و راه‌اندازی کانتینر',
+        percent: pct,
+        stage: curStep ? curStep.title : 'استقرار',
+        tasks: heroTasks,
+      });
+    } else if (snap.status === 'awaiting_approval') {
+      setHero({
+        pose: 'waiting',
+        title: 'منتظر اجازهٔ شما برای ادامه استقرار',
+        sub: snap.pendingApproval?.title || 'لطفاً کارت تأیید را در گفتگو بررسی کنید',
+        percent: pct,
+        stage: 'منتظر تأیید',
+        tasks: heroTasks,
+      });
+    } else if (snap.status === 'awaiting_fix' || snap.status === 'error') {
+      setHero({
+        pose: 'error',
+        title: 'خطا در مرحلهٔ استقرار شناسایی شد',
+        sub: snap.bug?.title || 'لیا آمادهٔ رفع خودکار مشکل است',
+        percent: pct,
+        stage: 'نیاز به رفع خطا',
+        tasks: heroTasks,
+      });
+    } else if (snap.status === 'done') {
+      setHero({
+        pose: 'done',
+        title: 'اپلیکیشن با موفقیت مستقر و آنلاین شد!',
+        sub: snap.url || snap.appName || 'استقرار کامل شد',
+        percent: 100,
+        stage: 'آنلاین ✓',
+        tasks: heroTasks,
+      });
+    }
+
+    // ثبت در لاگ‌های ترمینال
+    if (snap.logs?.length) {
+      const last = snap.logs[snap.logs.length - 1];
+      if (last) appendLog(`[${snap.appName || 'deploy'}] ${last.text}`);
+    }
+
+    // اگر آدرس فعال موجود است
+    if (snap.url) {
+      if (el.deployAppMeta) el.deployAppMeta.hidden = false;
+      if (el.deployedUrlLink) {
+        el.deployedUrlLink.textContent = snap.url;
+        el.deployedUrlLink.href = snap.url;
+      }
+      updateLivePreview(snap.url, snap.appName);
+    }
 
     if (snap.status === 'awaiting_approval' && snap.pendingApproval && !state.seen.has('ap-' + snap.pendingApproval.stepId)) {
       state.seen.add('ap-' + snap.pendingApproval.stepId);
@@ -1027,7 +2072,7 @@
       state.seen.add('bug-' + snap.id);
       renderCard({ kind: 'bug', bug: snap.bug });
     }
-    // خلاصهٔ پایان دیپلوی (مثل ویجت) — یک‌بار
+    // خلاصهٔ پایان دیپلوی
     if (snap.status === 'done' && snap.summary && !state.seen.has('sum-' + snap.id)) {
       state.seen.add('sum-' + snap.id);
       renderCard({ kind: 'summary', summary: { ...snap.summary, appName: snap.appName, url: snap.summary.url || snap.url } });
@@ -1070,5 +2115,5 @@
     toast(e.message);
   });
 
-  window.__AGENT__ = { state, send, act, openCheckout, loadFiles };
+  window.__AGENT__ = { state, send, act, openCheckout, loadFiles, openFileInEditor, switchTab, triggerRedeploy };
 })();

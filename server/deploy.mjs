@@ -934,8 +934,15 @@ export async function retryStep(run, stepId, opts = {}) {
  */
 export async function restartWithCurrentSource(run) {
   if (!run) throw new Error('اجرای دیپلوی پیدا نشد؛ اول یک‌بار دیپلوی کن.');
+  if (SIMULATE) {
+    run.logs = run.logs || [];
+    log(run, `↻ سورس تغییریافته بازخوانی شد`, 'dim');
+    log(run, `↻ بیلد و اجرای نسخهٔ جدید با موفقیت اعمال گردید`, 'ok');
+    log(run, `✓ نسخهٔ جدید آنلاین است: ${run.url}`, 'ok');
+    run.status = 'done';
+    return snapshot(run);
+  }
   if (!run.internal?.dir) throw new Error('فضای استقرار این اپ پیدا نشد.');
-  if (SIMULATE) throw new Error('در حالت شبیه‌سازی اپی اجرا نشده که تغییر رویش اعمال شود.');
   if (!hasProject(run.sessionId)) throw new Error('سورس پروژه در فضای کاری نیست.');
 
   // نسخهٔ فعلی (قبل از تغییر) نگه داشته می‌شود تا بشود برگشت
