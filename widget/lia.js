@@ -821,6 +821,17 @@
     scrollToEnd();
   }
 
+  /** دکمه‌های کارت‌های تأیید قدیمی را خاموش می‌کند تا کاربر اشتباهی روی آن‌ها نزند */
+  function lockApprovalButtons() {
+    const root = el.msgs;
+    if (!root) return;
+    for (const b of root.querySelectorAll('[data-act="yes"], [data-act="no"], [data-act="stop"]')) {
+      b.disabled = true;
+      b.style.opacity = '0.5';
+      b.style.cursor = 'default';
+    }
+  }
+
   function renderCardMessage(card) {
     const wrap = document.createElement('div');
     wrap.className = 'msg lia';
@@ -1010,6 +1021,8 @@
 
       case 'approval': {
         const a = card.approval || {};
+        // کارت‌های تأیید قبلی دیگر معتبر نیستند؛ دکمه‌هایشان خاموش شود
+        lockApprovalButtons();
         box.innerHTML = `
           <div class="step-num">مرحلهٔ ${fmt((a.index || 0) + 1)} از ${fmt(a.total || 0)}</div>
           <h4>${esc(a.title)}</h4>
@@ -1020,9 +1033,29 @@
             <button class="btn danger" data-act="no">نه</button>
             <button class="btn ghost" data-act="stop">فقط تا اینجا</button>
           </div>`;
-        box.querySelector('[data-act="yes"]').onclick = () => action('approve', { stepId: a.stepId, title: a.title });
-        box.querySelector('[data-act="no"]').onclick = () => action('reject', { stepId: a.stepId, title: a.title });
-        box.querySelector('[data-act="stop"]').onclick = () => action('stop', {});
+        const yes = box.querySelector('[data-act="yes"]');
+        const no = box.querySelector('[data-act="no"]');
+        const stop = box.querySelector('[data-act="stop"]');
+        const lock = (label) => {
+          for (const b of [yes, no, stop]) {
+            b.disabled = true;
+            b.style.opacity = '0.55';
+            b.style.cursor = 'default';
+          }
+          if (label) yes.textContent = label;
+        };
+        yes.onclick = () => {
+          lock('در حال اجرا…');
+          action('approve', { stepId: a.stepId, title: a.title });
+        };
+        no.onclick = () => {
+          lock('متوقف شد');
+          action('reject', { stepId: a.stepId, title: a.title });
+        };
+        stop.onclick = () => {
+          lock('متوقف شد');
+          action('stop', {});
+        };
         break;
       }
 

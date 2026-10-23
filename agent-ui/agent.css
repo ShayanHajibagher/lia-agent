@@ -274,3 +274,5 @@ dialog::backdrop { background: rgba(4, 8, 12, .72); backdrop-filter: blur(3px); 
   .files { max-height: 22vh; }
   .who .account span#accountName { display: none; }
 }
+
+.btn.on { border-color: #1f4a3d; color: #9dffd0; }

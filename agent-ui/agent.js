@@ -38,6 +38,7 @@
     download: $('downloadLink'),
     deployPanel: $('deployPanel'),
     deployStatus: $('deployStatus'),
+    autoFixBtn: $('autoFixBtn'),
     deployBar: $('deployBar'),
     deploySteps: $('deploySteps'),
     deployLogs: $('deployLogs'),
@@ -350,7 +351,26 @@
       renderAccount();
     }
     if (s.deploy !== undefined) updateDeploy(s.deploy);
+    if (s.autoFix !== undefined) {
+      state.autoFix = !!s.autoFix;
+      renderAutoFix();
+    }
     if (s.mode) el.status.dataset.mode = s.mode;
+  }
+
+  function renderAutoFix() {
+    if (!el.autoFixBtn) return;
+    el.autoFixBtn.textContent = `رفع خودکار: ${state.autoFix ? 'روشن' : 'خاموش'}`;
+    el.autoFixBtn.classList.toggle('on', !!state.autoFix);
+  }
+
+  if (el.autoFixBtn) {
+    el.autoFixBtn.onclick = () => {
+      const next = !state.autoFix;
+      state.autoFix = next;
+      renderAutoFix();
+      act('auto_fix_toggle', { value: next });
+    };
   }
 
   /* ---------------- پیام‌ها ---------------- */
@@ -520,6 +540,8 @@
 
     approval(box, card) {
       const a = card.approval || {};
+      // کارت‌های تأیید قبلی دیگر معتبر نیستند؛ دکمه‌هایشان خاموش شود
+      lockApprovalButtons();
       box.innerHTML = `
         <div class="sub">مرحلهٔ ${fmt((a.index || 0) + 1)} از ${fmt(a.total || 0)}</div>
         <h4>${esc(a.title)}</h4>
@@ -530,9 +552,29 @@
           <button class="btn danger" data-no>نه</button>
           <button class="btn ghost" data-stop>فقط تا اینجا</button>
         </div>`;
-      box.querySelector('[data-yes]').onclick = () => act('approve', { stepId: a.stepId, title: a.title });
-      box.querySelector('[data-no]').onclick = () => act('reject', { stepId: a.stepId, title: a.title });
-      box.querySelector('[data-stop]').onclick = () => act('stop', {});
+      const yes = box.querySelector('[data-yes]');
+      const no = box.querySelector('[data-no]');
+      const stop = box.querySelector('[data-stop]');
+      const lock = (label) => {
+        for (const b of [yes, no, stop]) {
+          b.disabled = true;
+          b.style.opacity = '0.55';
+          b.style.cursor = 'default';
+        }
+        if (label) yes.textContent = label;
+      };
+      yes.onclick = () => {
+        lock('در حال اجرا…');
+        act('approve', { stepId: a.stepId, title: a.title });
+      };
+      no.onclick = () => {
+        lock('متوقف شد');
+        act('reject', { stepId: a.stepId, title: a.title });
+      };
+      stop.onclick = () => {
+        lock('متوقف شد');
+        act('stop', {});
+      };
     },
 
     bug(box, card) {
@@ -712,11 +754,30 @@
         : s.simulated
           ? `<div class="sub" style="color:var(--warn)">آدرس شبیه‌سازی‌شده: <code>${esc(s.url)}</code> — اپ واقعی ساخته نشده</div>`
           : `<div class="sub">پیش‌نمایش: <a href="${esc(abs)}" target="_blank" rel="noopener">${esc(abs)}</a></div>`;
-      box.innerHTML = `<h4>${s.status === 'success' ? 'دیپلوی انجام شد' : 'خلاصه'}</h4>
+      const ok = s.status === 'success' || s.status === 'success_after_fix' || s.status === 'success_with_warnings';
+      box.innerHTML = `<h4>${ok ? 'دیپلوی انجام شد' : 'خلاصه'}</h4>
         ${urlLine}
         <div class="sub">مرحله‌های انجام‌شده: ${fmt(s.steps)}</div>
         ${(s.warnings || []).map((w) => `<div class="sub" style="color:var(--warn)">• ${esc(w)}</div>`).join('')}
-        ${s.stoppedAt ? `<div class="sub">توقف در: ${esc(s.stoppedAt)}</div>` : ''}`;
+        ${s.stoppedAt ? `<div class="sub">توقف در: ${esc(s.stoppedAt)}</div>` : ''}
+        <div class="btns">
+          ${abs && ok && !s.simulated ? `<a class="btn primary" href="${esc(abs)}" target="_blank" rel="noopener">باز کردن اپ</a>` : ''}
+          ${abs && ok && !s.simulated ? `<button class="btn danger" data-stopapp>توقف اپ</button>` : ''}
+          <button class="btn ghost" data-again>شروع دوباره</button>
+        </div>`;
+      const stopBtn = box.querySelector('[data-stopapp]');
+      if (stopBtn) stopBtn.onclick = async () => {
+        const name = s.appName;
+        if (!name) return;
+        stopBtn.disabled = true;
+        try {
+          await fetch(`${API}/api/apps/${encodeURIComponent(name)}/stop`, { method: 'POST' });
+          toast('اپ متوقف شد');
+        } catch {
+          toast('توقف ناموفق بود');
+        }
+      };
+      box.querySelector('[data-again]').onclick = () => act('restart', {});
     },
   };
 
@@ -797,9 +858,37 @@
     }
   }
 
+  /** دکمه‌های کارت‌های تأیید قدیمی را خاموش می‌کند */
+  function lockApprovalButtons() {
+    for (const b of document.querySelectorAll('.card [data-yes], .card [data-no], .card [data-stop]')) {
+      b.disabled = true;
+      b.style.opacity = '0.5';
+      b.style.cursor = 'default';
+    }
+  }
+
+  /**
+   * اگر یک درخواست به هر دلیلی معلق بماند، قفل صفحه برای همیشه نمی‌ماند.
+   */
+  function armBusyWatchdog() {
+    clearTimeout(state.busyTimer);
+    state.busyTimer = setTimeout(() => {
+      if (state.busy) {
+        state.busy = false;
+        el.send.disabled = false;
+        toast('درخواست قبلی طولانی شد؛ صفحه آزاد شد. اگر مرحله انجام نشد دوباره بزن.');
+        startPolling();
+      }
+    }, 25_000);
+  }
+
   async function act(name, payload = {}) {
-    if (state.busy) return;
+    if (state.busy) {
+      toast('یک کار در جریان است؛ چند لحظه صبر کن.');
+      return;
+    }
     state.busy = true;
+    armBusyWatchdog();
     el.send.disabled = true;
     try {
       await sse('/api/action', { sessionId: state.sessionId, action: name, payload }, handleEvent);
@@ -807,6 +896,7 @@
       toast(err.message);
     } finally {
       state.busy = false;
+      clearTimeout(state.busyTimer);
       el.send.disabled = false;
       startPolling();
       setTimeout(loadFiles, 500);
@@ -936,6 +1026,11 @@
     if (snap.status === 'awaiting_fix' && snap.bug && !state.seen.has('bug-' + snap.id)) {
       state.seen.add('bug-' + snap.id);
       renderCard({ kind: 'bug', bug: snap.bug });
+    }
+    // خلاصهٔ پایان دیپلوی (مثل ویجت) — یک‌بار
+    if (snap.status === 'done' && snap.summary && !state.seen.has('sum-' + snap.id)) {
+      state.seen.add('sum-' + snap.id);
+      renderCard({ kind: 'summary', summary: { ...snap.summary, appName: snap.appName, url: snap.summary.url || snap.url } });
     }
     if (snap.repair) {
       const key = 'repair-' + (snap.repair.id || `${snap.id}-${snap.repair.stepId}`);

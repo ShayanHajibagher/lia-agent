@@ -1011,14 +1011,39 @@ export async function handleAction(session, action, payload, emit) {
         session.deployRunId = null;
         return;
       }
-      approve(run, payload.stepId);
+      // کارت قدیمی یا مرحله‌ای که دیگر منتظر تأیید نیست: بی‌صدا رد نشو، توضیح بده
+      const pending = run.pendingApproval;
+      if (!pending) {
+        say(
+          session,
+          emit,
+          run.status === 'done'
+            ? 'این دیپلوی تمام شده است؛ مرحلهٔ بازِ دیگری برای تأیید نیست.'
+            : 'این مرحله الان منتظر تأیید نیست (در حال اجراست). چند لحظه صبر کن؛ وضعیت را تازه می‌کنم.',
+        );
+        return;
+      }
+      if (payload.stepId && payload.stepId !== pending.stepId) {
+        say(
+          session,
+          emit,
+          `این کارت مربوط به مرحلهٔ «${payload.title || payload.stepId}» بود که دیگر منتظر تأیید نیست. ` +
+            `مرحلهٔ فعلی «${pending.title}» است؛ همان کارت پایین را بزن.`,
+        );
+        return;
+      }
+      approve(run, pending.stepId);
       return;
     }
 
     case 'reject': {
       const run = getRun(payload.runId || session.deployRunId);
       if (!run) return;
-      reject(run, payload.stepId);
+      if (!run.pendingApproval || (payload.stepId && payload.stepId !== run.pendingApproval.stepId)) {
+        say(session, emit, 'این کارت دیگر معتبر نیست؛ کارت مرحلهٔ فعلی را بزن.');
+        return;
+      }
+      reject(run, run.pendingApproval.stepId);
       const snap = snapshot(run);
       say(session, emit, `باشه، «${payload.title || 'این مرحله'}» را انجام ندادم و همین‌جا متوقف شدم.`);
       card(session, emit, { kind: 'summary', summary: snap.summary });
@@ -1374,6 +1399,8 @@ export async function deployFailed(session, run, info) {
       logLine(session.id, 'repair', 'دیباگ با مدل ناموفق بود: ' + e.message, 'err');
     }
   }
+
+  flushSay(session.id);
 }
 
 /** اعمال وصله‌های تشخیص‌داده‌شده و اجرای دوبارهٔ همان مرحله */
