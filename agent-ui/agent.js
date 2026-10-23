@@ -2091,7 +2091,7 @@
     }
   }
 
-  function updateLivePreview(url, appName, { simulated = false, ready = false } = {}) {
+  function updateLivePreview(url, appName, { simulated = false, ready = false, updatedAt = 0 } = {}) {
     if (!url) return;
 
     if (simulated) {
@@ -2112,10 +2112,17 @@
     if (el.previewEmptyState) el.previewEmptyState.hidden = true;
     if (el.previewLiveIndicator) el.previewLiveIndicator.hidden = false;
 
-    if (el.previewIframe && el.previewIframe.dataset.src !== targetUrl) {
-      el.previewIframe.dataset.src = targetUrl;
-      el.previewIframe.src = targetUrl;
-      el.previewIframe.hidden = false;
+    if (el.previewIframe) {
+      const stamp = String(updatedAt || 0);
+      const changed = el.previewIframe.dataset.src !== targetUrl || el.previewIframe.dataset.stamp !== stamp;
+      if (changed) {
+        el.previewIframe.dataset.src = targetUrl;
+        el.previewIframe.dataset.stamp = stamp;
+        // پارامتر نسخه، کش مرورگر را دور می‌زند تا تغییرات تازه دیده شوند
+        const sep = targetUrl.includes('?') ? '&' : '?';
+        el.previewIframe.src = updatedAt ? `${targetUrl}${sep}v=${updatedAt}` : targetUrl;
+        el.previewIframe.hidden = false;
+      }
     }
   }
 
@@ -2375,7 +2382,7 @@
       const isFakeDomain = /^https?:\/\/[^/]+\.liara\.run\/?$/i.test(String(snap.url));
       const simulated = snap.simulated === true || snap.summary?.simulated === true || isFakeDomain;
       const ready = snap.status === 'done' && snap.summary?.status !== 'failed';
-      updateLivePreview(snap.url, snap.appName, { simulated, ready });
+      updateLivePreview(snap.url, snap.appName, { simulated, ready, updatedAt: snap.updatedAt || 0 });
     }
 
     if (snap.status === 'awaiting_approval' && snap.pendingApproval && !state.seen.has('ap-' + snap.pendingApproval.stepId)) {

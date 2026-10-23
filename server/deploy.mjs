@@ -952,8 +952,11 @@ export async function restartWithCurrentSource(run) {
   const stats = syncSource(run);
   log(run, `↻ ${stats.files} فایل تازه روی فضای استقرار کپی شد`, 'ok');
 
-  const hasBuild = run.steps.some((s) => s.id === 'build');
-  if (hasBuild) await STEP_HANDLERS.build(run, { id: 'build', title: 'بیلد پروژه' });
+  // همیشه بیلد را امتحان کن؛ اگر package.json اسکریپت build نداشت، خودش رد می‌شود.
+  // قبلاً فقط وقتی مرحلهٔ build در نقشه بود اجرا می‌شد و ویرایش‌های بعدی روی اپ
+  // ساخته‌نشده می‌ماندند (کد جدید در سورس، نسخهٔ قدیم در خروجی بیلد).
+  await STEP_HANDLERS.build(run, { id: 'build', title: 'بیلد پروژه' });
+  if (run.status === 'awaiting_fix') return snapshot(run);
 
   killExisting(run.appName);
   deployed.delete(run.appName);
@@ -969,6 +972,7 @@ export async function restartWithCurrentSource(run) {
   await STEP_HANDLERS.health(run, { id: 'health', title: 'سلامت‌سنجی' });
 
   run.status = 'done';
+  run.updatedAt = Date.now();
   log(run, `✓ کد تازه اعمال شد: ${run.url}`, 'ok');
   return snapshot(run);
 }
@@ -1050,6 +1054,7 @@ export function snapshot(run, since = 0) {
     lastEvent: run.events.length ? run.events[run.events.length - 1].n : 0,
     summary: run.summary,
     warnings: run.warnings,
+    updatedAt: run.updatedAt || 0,
     simulated: SIMULATE,
     local: !SIMULATE,
   };
