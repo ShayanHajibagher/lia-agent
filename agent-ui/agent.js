@@ -984,6 +984,26 @@
 
   /* ---------------- پیام‌ها ---------------- */
 
+  /** حباب خالی برای پاسخ استریمی (deltaها داخلش می‌نشینند) */
+  function startStreamBubble(id) {
+    hideLiveActivity();
+    const wrap = document.createElement('div');
+    wrap.className = 'msg lia';
+    wrap.innerHTML = `
+      <div class="msg-header">
+        <div class="avatar">
+          <img src="/widget/assets/lia/avatar.webp" alt="لیا" class="msg-avatar-pic" width="34" height="34" style="width:34px;height:34px;max-width:34px;max-height:34px;border-radius:50%;object-fit:cover;flex:0 0 34px;display:block;" />
+          <span class="avatar-name">لیا</span>
+          <span class="avatar-tag">دستیار هوشمند ابری</span>
+        </div>
+      </div>
+      <div class="bubble" data-stream-id="${esc(id)}" data-raw=""></div>`;
+    el.msgs.appendChild(wrap);
+    scrollEnd();
+    if (id) state.seen.add(id);
+    return wrap.querySelector('.bubble');
+  }
+
   function renderText(msg) {
     if (msg.id && state.seen.has(msg.id)) return;
     if (msg.role === 'user' && state.pendingUser && state.pendingUser.text === msg.text) {
@@ -1506,6 +1526,31 @@
       case 'meta':
         if (ev.mode) el.status.dataset.mode = ev.mode;
         break;
+      case 'msg_start':
+        // پاسخ مدل به‌صورت استریمی می‌آید؛ بدون این، پیام تا رفرش دیده نمی‌شد
+        if (ev.msg?.id) startStreamBubble(ev.msg.id);
+        break;
+      case 'delta': {
+        const target = el.msgs.querySelector(`[data-stream-id="${ev.id}"]`);
+        if (target) {
+          target.dataset.raw = (target.dataset.raw || '') + ev.text;
+          target.innerHTML = md(target.dataset.raw);
+          scrollEnd();
+        }
+        break;
+      }
+      case 'msg_end': {
+        const target = ev.msg?.id ? el.msgs.querySelector(`[data-stream-id="${ev.msg.id}"]`) : null;
+        if (target) {
+          target.dataset.raw = ev.msg.text || target.dataset.raw || '';
+          target.innerHTML = md(target.dataset.raw);
+          target.removeAttribute('data-stream-id');
+          if (ev.msg.id) state.seen.add(ev.msg.id);
+        } else if (ev.msg?.kind === 'text') {
+          renderText(ev.msg);
+        }
+        break;
+      }
       case 'msg':
         if (ev.msg?.kind === 'text') renderText(ev.msg);
         else if (ev.msg?.card) {

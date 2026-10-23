@@ -11,7 +11,6 @@
 ```bash
 npm i -g @liara/cli
 liara login
-
 ```
 
 ## ۲. تنظیم نام برنامه
