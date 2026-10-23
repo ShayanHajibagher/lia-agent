@@ -40,6 +40,11 @@ const LIMITS = {
  */
 const SIMULATE = process.env.LIA_DEPLOY_SIMULATE === '1';
 
+/** آیا دیپلوی شبیه‌سازی است؟ (برای برچسب‌زدن آدرس‌ها در UI) */
+export function isSimulated() {
+  return SIMULATE;
+}
+
 const runs = new Map();
 const deployed = new Map();
 const finishListeners = new Set();
@@ -234,7 +239,12 @@ async function waitHealthy(run, url, timeoutMs) {
 /* ---------------- گام‌ها (تصمیم پویا) ---------------- */
 
 export function createRun({ session, analysis, plan, needsDb, reuse = null, only = null }) {
-  const appName = slugify(reuse?.appName || analysis?.packageName || session.requirement?.appName || 'lia-app');
+  // نام اپ: نام پکیج پروژه → نامی که کاربر گفته → نام فایل zip → پیش‌فرض
+  const intakeName = String(session.intake?.name || '');
+  const fromFile = /^[\w.\- ]+\.zip$/i.test(intakeName) ? intakeName.replace(/\.zip$/i, '') : '';
+  const appName = slugify(
+    reuse?.appName || analysis?.packageName || session.requirement?.appName || fromFile || 'lia-app',
+  );
   const deployment = planDeploy({
     analysis: reuse?.analysis || analysis,
     requirement: session.requirement || {},
@@ -247,7 +257,8 @@ export function createRun({ session, analysis, plan, needsDb, reuse = null, only
     id: 'run_' + crypto.randomUUID().slice(0, 8),
     sessionId: session.id,
     appName,
-    url: null,
+    // آدرس عمومی: در شبیه‌سازی یک برچسب، در اجرای واقعی مسیر پیش‌نمایش روی همین دامنه
+    url: SIMULATE ? `https://${appName}.liara.run` : `/apps/${appName}/`,
     createdAt: now(),
     status: 'created',
     steps: deployment.steps,
@@ -392,6 +403,7 @@ function finish(run) {
     reused: !!run.reuse,
     skipped: (run.skipped || []).length,
     local: !SIMULATE,
+    simulated: SIMULATE,
   };
   log(run, `✓ دیپلوی کامل شد: ${run.url}`, 'ok');
   emit(run, 'done', { summary: run.summary });
@@ -465,8 +477,10 @@ const STEP_HANDLERS = {
 
     const port = await pickPort();
     run.internal.port = port;
-    run.url = `http://127.0.0.1:${port}`;
-    log(run, `پورت آزاد انتخاب شد: ${port}`, 'ok');
+    // آدرس عمومی (قابل کلیک) از روی همین دامنه؛ خود آدرس داخلی برای سلامت‌سنجی
+    run.internal.healthUrl = `http://127.0.0.1:${port}`;
+    run.url = `/apps/${run.appName}/`;
+    log(run, `پورت داخلی ${port} — پیش‌نمایش عمومی: ${run.url}`, 'ok');
   },
 
   async 'create-app'(run) {
@@ -723,7 +737,7 @@ const STEP_HANDLERS = {
       log(run, `✓ سرو استاتیک آماده است: ${run.url}`, 'ok');
       return;
     }
-    const check = await waitHealthy(run, run.url, LIMITS.healthMs);
+    const check = await waitHealthy(run, run.internal.healthUrl || run.url, LIMITS.healthMs);
     if (!check.ok) {
       throw new Error(`برنامه در ${Math.round(LIMITS.healthMs / 1000)}s پاسخ نداد (${check.error || 'بدون پاسخ'})`);
     }
@@ -896,8 +910,15 @@ export function listDeployments() {
     status: d.status,
     startedAt: d.startedAt,
     static: !!d.staticDir,
+    simulated: SIMULATE,
     runId: d.runId,
   }));
+}
+
+export function deploymentInfo(name) {
+  const dep = deployed.get(name);
+  if (!dep) return null;
+  return { name: dep.name, port: dep.port ?? null, status: dep.status, staticDir: dep.staticDir || null, url: dep.url };
 }
 
 export function stopDeployment(name) {

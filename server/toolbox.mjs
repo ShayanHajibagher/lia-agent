@@ -12,7 +12,7 @@ import path from 'node:path';
 import { analyzeFiles } from './analyzer.mjs';
 import { quote, planCard } from './plans.mjs';
 import { progress, stepById, resolveStep } from './steps.mjs';
-import { createRun, advance, snapshot, getRun, retryStep } from './deploy.mjs';
+import { createRun, advance, snapshot, getRun, retryStep, isSimulated } from './deploy.mjs';
 import { diagnoseFailure } from './repair.mjs';
 import {
   hasProject,
@@ -531,6 +531,7 @@ export const TOOLS = [
           appName: run.appName,
           url: run.url,
           reused: true,
+          simulated: isSimulated(),
           summary: run.planSummary,
           steps: run.steps.map((s) => ({ id: s.id, title: s.title, approval: s.approval, why: s.why })),
           skipped: run.skipped,
@@ -575,6 +576,7 @@ export const TOOLS = [
           runId: run.id,
           appName: run.appName,
           url: run.url,
+          simulated: isSimulated(),
           summary: run.planSummary,
           steps: run.steps.map((s) => ({ id: s.id, title: s.title, approval: s.approval, why: s.why })),
           skipped: run.skipped,

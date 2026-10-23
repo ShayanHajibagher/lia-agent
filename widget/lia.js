@@ -1060,7 +1060,8 @@
           .join('');
         box.innerHTML = `
           <h4>${card.reused ? 'نقشهٔ دیپلوی مجدد' : 'نقشهٔ دیپلوی'}</h4>
-          <div class="sub"><code>${esc(card.appName)}.liara.run</code> — ${fmt((card.steps || []).length)} مرحله${card.reused ? ' · بدون آپلود دوباره' : ''}</div>
+          <div class="sub"><code>${esc(card.simulated ? `${card.appName}.liara.run` : card.url || `/apps/${card.appName}/`)}</code> — ${fmt((card.steps || []).length)} مرحله${card.reused ? ' · بدون آپلود دوباره' : ''}${card.simulated ? ' · شبیه‌سازی' : ''}</div>
+          ${card.simulated ? '<div class="sub" style="color:#ffd699;font-size:10.5px">این اجرا شبیه‌سازی است؛ اپی روی لیارا ساخته نمی‌شود.</div>' : ''}
           <div style="display:flex;flex-direction:column;gap:4px">
             ${(card.steps || [])
               .map(
@@ -1330,14 +1331,19 @@
         const ok = s.status === 'success' || s.status === 'success_after_fix' || s.status === 'success_with_warnings';
         box.innerHTML = `
           <h4>${ok ? '✓ دیپلوی انجام شد' : 'متوقف شد'}</h4>
-          ${fullUrl ? `<div class="sub">آدرس (روی همین سیستم): <a href="${esc(fullUrl)}" target="_blank" rel="noopener">${esc(fullUrl)}</a></div>` : ''}
-          ${s.local && s.port ? `<div class="sub" style="color:#8fd8bd">پورت ${esc(s.port)} — فقط از 127.0.0.1 در دسترس است.</div>` : ''}
+          ${s.simulated && fullUrl
+            ? `<div class="sub" style="color:#ffd699">آدرس شبیه‌سازی‌شده: <span style="direction:ltr;display:inline-block">${esc(fullUrl)}</span><br>
+                 این اپ واقعاً روی لیارا ساخته نشده؛ آدرس بالا فقط نمایشی است.</div>`
+            : fullUrl
+              ? `<div class="sub">آدرس پیش‌نمایش: <a href="${esc(fullUrl)}" target="_blank" rel="noopener">${esc(fullUrl)}</a></div>`
+              : ''}
+          ${s.local && s.port && !s.simulated ? `<div class="sub" style="color:#8fd8bd">پورت ${esc(s.port)} — فقط از 127.0.0.1 در دسترس است.</div>` : ''}
           <div class="sub">مراحل انجام‌شده: ${fmt(s.steps || 0)}${s.stoppedAt ? ` — توقف در «${esc(s.stoppedAt)}»` : ''}${s.reused ? ' — دیپلوی مجدد بدون آپلود' : ''}</div>
           ${(s.fixed || []).length ? `<div class="sub" style="color:#8fd8bd">رفع شد: ${esc((s.fixed || []).join('، '))}</div>` : ''}
           ${(s.warnings || []).length ? `<div class="sub" style="color:#ffd699">هشدارها: ${esc((s.warnings || []).join(' — '))}</div>` : ''}
           <div class="btns">
-            ${fullUrl && ok ? `<a class="btn primary" href="${esc(fullUrl)}" target="_blank" rel="noopener">باز کردن اپ</a>` : ''}
-            ${fullUrl && ok ? `<button class="btn danger" data-act="stopapp">توقف اپ</button>` : ''}
+            ${fullUrl && ok && !s.simulated ? `<a class="btn primary" href="${esc(fullUrl)}" target="_blank" rel="noopener">باز کردن اپ</a>` : ''}
+            ${fullUrl && ok && !s.simulated ? `<button class="btn danger" data-act="stopapp">توقف اپ</button>` : ''}
             <button class="btn ghost" data-act="again">شروع دوباره</button>
           </div>`;
         box.querySelector('[data-act="again"]').onclick = () => action('restart', {});

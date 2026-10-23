@@ -37,6 +37,7 @@ import {
 import { analyzeFromZip } from './intake.mjs';
 import { saveProject, fileTree, readFile as readWorkspaceFile, exportZip } from './workspace.mjs';
 import { getRun, snapshot, listDeployments, stopDeployment, staticRoot, onRunFinished, onRunFailed } from './deploy.mjs';
+import { appFromHost, proxyToApp, previewDomain } from './preview.mjs';
 import { llmInfo, llmStatus, checkProvider } from './llm.mjs';
 import { PLAN_CATALOG } from './plans.mjs';
 import { createOrGet, getAccount, planStatus, publicAccount, purchase, plansList, linkSession } from './account.mjs';
@@ -211,11 +212,19 @@ function serveStatic(req, res, url) {
         <script>fetch('/api/apps').then(r=>r.json()).then(d=>{document.getElementById('out').textContent=JSON.stringify(d.apps,null,2);})</script>
         </body></html>`);
     }
+    // بدون اسلش پایانی → با اسلش، تا مسیرهای نسبی اپ درست کار کنند
+    if (url === `/apps/${name}`) {
+      res.writeHead(302, { location: `/apps/${name}/` });
+      return res.end();
+    }
+
     const root = staticRoot(name);
     if (!root) {
+      // اپ داینامیک: درخواست را به پورت داخلی همان اپ پروکسی کن
+      if (proxyToApp(req, res, name, { stripPrefix: `/apps/${name}`, prefix: `/apps/${name}/` })) return;
       res.writeHead(404, { 'content-type': 'text/html; charset=utf-8' });
       return res.end(`<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><body style="font-family:system-ui;background:#0b0f14;color:#e7eef4;padding:40px">
-        <h1>اپ پیدا نشد</h1><p>برنامه‌ای با نام <code>${name}</code> در حال سرو استاتیک نیست.</p>
+        <h1>اپ پیدا نشد</h1><p>برنامه‌ای با نام <code>${name}</code> در حال اجرا نیست.</p>
         <p><a style="color:#2ee6b0" href="/api/apps">فهرست اپ‌ها</a></p></body></html>`);
     }
     const rel = '/' + parts.slice(2).join('/');
@@ -364,7 +373,12 @@ async function routeApi(req, res, url, urlPath) {
 
   /* --- اپ‌های مستقرشده روی لوکال --- */
   if (urlPath === '/api/apps' && req.method === 'GET') {
-    return json(res, 200, { apps: listDeployments() });
+    const apps = listDeployments().map((a) => ({
+      ...a,
+      preview: `/apps/${encodeURIComponent(a.name)}/`,
+      subdomain: previewDomain() ? `${a.name}.${previewDomain()}` : null,
+    }));
+    return json(res, 200, { apps, previewDomain: previewDomain() });
   }
   if (urlPath.startsWith('/api/apps/') && urlPath.endsWith('/stop') && req.method === 'POST') {
     const name = urlPath.slice('/api/apps/'.length, -'/stop'.length);
@@ -638,6 +652,10 @@ const server = http.createServer(async (req, res) => {
   const urlPath = url.pathname;
 
   try {
+    // اگر دامنهٔ پیش‌نمایش تنظیم شده باشد، <name>.preview.example.com مستقیم به اپ می‌رود
+    const subApp = appFromHost(req.headers.host);
+    if (subApp && proxyToApp(req, res, subApp)) return;
+
     if (urlPath.startsWith('/api/')) return await routeApi(req, res, url, urlPath);
     return serveStatic(req, res, urlPath);
   } catch (e) {

@@ -14,7 +14,7 @@ import { addMessage, touch } from './store.mjs';
 import { quote, planCard, PLAN_CATALOG } from './plans.mjs';
 import { progress, stepForPath, resolveStep, stepById } from './steps.mjs';
 import { answerQuestion, answerInstruction, llmInfo, llmStatus } from './llm.mjs';
-import { createRun, advance, approve, reject, stopHere, fixBug, retryStep, setRepair, snapshot, getRun } from './deploy.mjs';
+import { createRun, advance, approve, reject, stopHere, fixBug, retryStep, setRepair, snapshot, getRun, isSimulated } from './deploy.mjs';
 import { diagnoseFailure, applyRepairs, describeApplied } from './repair.mjs';
 import { runAgent, resumeAgent, agentState, resetAgentMemory } from './agent.mjs';
 import { assessSuitability, applyAdaptations } from './suitability.mjs';
@@ -752,6 +752,7 @@ export async function launchDeploy(session, emit, { reuse = null, only = null } 
     appName: run.appName,
     url: run.url,
     reused: !!reuse,
+    simulated: isSimulated(),
     summary: run.planSummary,
     steps: run.steps.map((s) => ({ id: s.id, title: s.title, approval: s.approval, why: s.why })),
     skipped: run.skipped,

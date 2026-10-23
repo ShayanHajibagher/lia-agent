@@ -706,8 +706,14 @@
 
     summary(box, card) {
       const s = card.summary || {};
+      const abs = s.url ? (s.url.startsWith('http') ? s.url : location.origin + s.url) : '';
+      const urlLine = !s.url
+        ? ''
+        : s.simulated
+          ? `<div class="sub" style="color:var(--warn)">آدرس شبیه‌سازی‌شده: <code>${esc(s.url)}</code> — اپ واقعی ساخته نشده</div>`
+          : `<div class="sub">پیش‌نمایش: <a href="${esc(abs)}" target="_blank" rel="noopener">${esc(abs)}</a></div>`;
       box.innerHTML = `<h4>${s.status === 'success' ? 'دیپلوی انجام شد' : 'خلاصه'}</h4>
-        ${s.url ? `<div class="sub">آدرس: <code>${esc(s.url)}</code></div>` : ''}
+        ${urlLine}
         <div class="sub">مرحله‌های انجام‌شده: ${fmt(s.steps)}</div>
         ${(s.warnings || []).map((w) => `<div class="sub" style="color:var(--warn)">• ${esc(w)}</div>`).join('')}
         ${s.stoppedAt ? `<div class="sub">توقف در: ${esc(s.stoppedAt)}</div>` : ''}`;
