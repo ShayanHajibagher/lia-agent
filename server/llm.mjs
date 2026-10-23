@@ -5,14 +5,15 @@
  * `/v1/chat/completions` لیارا. تنظیمات از env می‌آید:
  *   LIA_LLM_BASE_URL, LIA_LLM_API_KEY, LIA_LLM_MODEL, LIA_DEMO=1
  *
- * اگر کلید نباشد، «حالت دمو» فعال است: پاسخ‌ها از وضعیت سشن ساخته می‌شوند تا
- * کل جریان (راهنما، پلن، دیپلوی، تأیید) بدون کلید هم قابل تست باشد.
+ * پیش‌فرضِ درگاه، **BoxAPI** است؛ برای عوض کردنش کافی است همین متغیرها را ست کنی
+ * (مثلاً LM Studio محلی). اگر کلید نباشد، «حالت دمو» فعال می‌شود: پاسخ‌ها از وضعیت
+ * سشن ساخته می‌شوند تا کل جریان بدون کلید هم قابل تست باشد.
  */
 import './env.mjs';
 
-const BASE = (process.env.LIA_LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
+const BASE = (process.env.LIA_LLM_BASE_URL || 'https://ai.boxapi.ir/ai/v1').replace(/\/$/, '');
 const KEY = process.env.LIA_LLM_API_KEY || '';
-const MODEL = process.env.LIA_LLM_MODEL || 'gpt-4o-mini';
+const MODEL = process.env.LIA_LLM_MODEL || 'gpt-6-luna';
 const FORCE_DEMO = process.env.LIA_DEMO === '1';
 
 /* ---------------- سازگاری پارامترها با مدل ----------------
