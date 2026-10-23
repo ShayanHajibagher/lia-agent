@@ -1,0 +1,110 @@
+{
+ "savedAt": "2026-10-23T16:47:46.528Z",
+ "entries": [
+  {
+   "appName": "node-hello",
+   "dir": "D:\\projects\\liyara - Copy\\ready-project\\.data\\deployments\\node-hello",
+   "url": "/apps/node-hello/",
+   "port": 4310,
+   "fingerprint": "979d63277bc99aff",
+   "sessionId": "s_d65a84a7839e5114",
+   "accountId": null,
+   "analysis": {
+    "platform": "nodejs",
+    "packageName": "node-hello",
+    "port": 3000,
+    "build": null,
+    "start": "node server.js",
+    "envKeys": [],
+    "capabilities": {
+     "db": [],
+     "cache": [],
+     "heavy": []
+    },
+    "findings": [
+     {
+      "id": "missing-env-example",
+      "severity": "low",
+      "title": ".env.example وجود ندارد",
+      "detail": "بدون فهرست متغیرها، تنظیم محیط در پنل سعی و خطا می‌شود.",
+      "fix": "ساخت .env.example",
+      "file": null
+     }
+    ],
+    "stats": {
+     "fileCount": 2,
+     "sourceBytes": 302,
+     "sourceMb": 0
+    },
+    "planInputs": {
+     "platform": "nodejs",
+     "heavyDeps": 0,
+     "needsDb": false,
+     "uploadsGb": 0
+    },
+    "tree": [
+     "package.json",
+     "server.js"
+    ]
+   },
+   "status": "success",
+   "reused": false,
+   "deployedAt": 1792774066114,
+   "runId": "run_515621b4"
+  },
+  {
+   "appName": "static-portfolio",
+   "dir": "D:\\projects\\liyara - Copy\\ready-project\\.data\\deployments\\static-portfolio",
+   "url": "https://static-portfolio.liara.run",
+   "port": 80,
+   "fingerprint": "e04939966d508a44",
+   "sessionId": "s_f61f737c00f86994",
+   "accountId": null,
+   "analysis": {
+    "platform": "static",
+    "packageName": null,
+    "port": 80,
+    "build": null,
+    "start": "serve static",
+    "envKeys": [],
+    "capabilities": {
+     "db": [],
+     "cache": [],
+     "heavy": []
+    },
+    "findings": [
+     {
+      "id": "missing-env-example",
+      "severity": "low",
+      "title": ".env.example وجود ندارد",
+      "detail": "بدون فهرست متغیرها، تنظیم محیط در پنل سعی و خطا می‌شود.",
+      "fix": "ساخت .env.example",
+      "file": null
+     }
+    ],
+    "stats": {
+     "fileCount": 5,
+     "sourceBytes": 601,
+     "sourceMb": 0
+    },
+    "planInputs": {
+     "platform": "static",
+     "heavyDeps": 0,
+     "needsDb": false,
+     "uploadsGb": 0
+    },
+    "tree": [
+     "index.html",
+     "styles.css",
+     "script.js",
+     "assets/dot.svg",
+     "README.md"
+    ]
+   },
+   "status": "success",
+   "reused": false,
+   "deployedAt": 1792774002076,
+   "runId": "run_eb438d1b"
+  }
+ ]
+}

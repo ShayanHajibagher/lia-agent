@@ -1050,7 +1050,8 @@ export function snapshot(run, since = 0) {
     lastEvent: run.events.length ? run.events[run.events.length - 1].n : 0,
     summary: run.summary,
     warnings: run.warnings,
-    local: true,
+    simulated: SIMULATE,
+    local: !SIMULATE,
   };
 }
 

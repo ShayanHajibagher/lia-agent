@@ -1964,17 +1964,53 @@
 
   /* ---------------- پیش‌نمایش زنده اپ (Live Preview Iframe) ---------------- */
 
-  function updateLivePreview(url, appName) {
+  /**
+   * پیش‌نمایش زنده فقط وقتی لود می‌شود که اپ واقعاً بالا باشد.
+   * قبلاً در هر poll دوباره src ست می‌شد و برای اپ شبیه‌سازی‌شده هم تلاش می‌کرد
+   * (سیل 503 و هشدار sandbox در کنسول).
+   */
+  function showPreviewPlaceholder(text) {
+    if (el.previewIframe) {
+      el.previewIframe.hidden = true;
+      el.previewIframe.removeAttribute('src');
+      delete el.previewIframe.dataset.src;
+    }
+    if (el.previewLiveIndicator) el.previewLiveIndicator.hidden = true;
+    if (el.previewEmptyState) {
+      el.previewEmptyState.hidden = false;
+      const h = el.previewEmptyState.querySelector('h3');
+      const p = el.previewEmptyState.querySelector('p');
+      if (h) h.textContent = 'پیش‌نمایش در دسترس نیست';
+      if (p) p.textContent = text;
+    }
+  }
+
+  function updateLivePreview(url, appName, { simulated = false, ready = false } = {}) {
     if (!url) return;
+
+    if (simulated) {
+      if (el.previewUrlInput) el.previewUrlInput.value = url;
+      if (el.previewOpenTabBtn) el.previewOpenTabBtn.href = '#';
+      showPreviewPlaceholder('این اجرا شبیه‌سازی است؛ اپی روی لیارا ساخته نشده و پیش‌نمایشی وجود ندارد.');
+      return;
+    }
+    if (!ready) {
+      if (el.previewUrlInput) el.previewUrlInput.value = url;
+      showPreviewPlaceholder('پیش‌نمایش بعد از پایان موفق دیپلوی فعال می‌شود.');
+      return;
+    }
+
     const targetUrl = url.startsWith('/') ? `${location.origin}${url}` : url;
     if (el.previewUrlInput) el.previewUrlInput.value = targetUrl;
-    if (el.previewIframe) {
+    if (el.previewOpenTabBtn) el.previewOpenTabBtn.href = targetUrl;
+    if (el.previewEmptyState) el.previewEmptyState.hidden = true;
+    if (el.previewLiveIndicator) el.previewLiveIndicator.hidden = false;
+
+    if (el.previewIframe && el.previewIframe.dataset.src !== targetUrl) {
+      el.previewIframe.dataset.src = targetUrl;
       el.previewIframe.src = targetUrl;
       el.previewIframe.hidden = false;
     }
-    if (el.previewEmptyState) el.previewEmptyState.hidden = true;
-    if (el.previewLiveIndicator) el.previewLiveIndicator.hidden = false;
-    if (el.previewOpenTabBtn) el.previewOpenTabBtn.href = targetUrl;
   }
 
   if (el.previewReloadBtn && el.previewIframe) {
@@ -2223,14 +2259,17 @@
       if (last) appendLog(`[${snap.appName || 'deploy'}] ${last.text}`);
     }
 
-    // اگر آدرس فعال موجود است
+    // آدرس و پیش‌نمایش: فقط وقتی اپ واقعاً بالا آمده باشد
     if (snap.url) {
       if (el.deployAppMeta) el.deployAppMeta.hidden = false;
       if (el.deployedUrlLink) {
         el.deployedUrlLink.textContent = snap.url;
         el.deployedUrlLink.href = snap.url;
       }
-      updateLivePreview(snap.url, snap.appName);
+      const isFakeDomain = /^https?:\/\/[^/]+\.liara\.run\/?$/i.test(String(snap.url));
+      const simulated = snap.simulated === true || snap.summary?.simulated === true || isFakeDomain;
+      const ready = snap.status === 'done' && snap.summary?.status !== 'failed';
+      updateLivePreview(snap.url, snap.appName, { simulated, ready });
     }
 
     if (snap.status === 'awaiting_approval' && snap.pendingApproval && !state.seen.has('ap-' + snap.pendingApproval.stepId)) {

@@ -1,0 +1,1 @@
+const http=require('node:http');const port=process.env.PORT||3000;http.createServer((q,r)=>{r.writeHead(200,{'content-type':'text/html; charset=utf-8'});r.end('<h1>hello</h1>')}).listen(port,'127.0.0.1');
