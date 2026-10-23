@@ -423,6 +423,17 @@ export async function runDemo(session, emit, text, io) {
   agent.status = 'running';
   agent.pending = null;
 
+  // در حالت دمو هیچ کدی تغییر نمی‌کند؛ این را صریح بگو تا کاربر فکر نکند ایجنت خراب است
+  if (llmInfo().demo && !session.demoNoticed) {
+    session.demoNoticed = true;
+    io.say(
+      '⚠️ الان در «حالت دمو» هستم: کلید مدل روی سرور تنظیم نشده، برای همین نمی‌توانم کد را بخوانم یا تغییر بدهم ' +
+        'و فقط راهنمایی می‌کنم.\n' +
+        'برای فعال‌شدن مدل، در لیارا → برنامه → «متغیرهای محیطی» این‌ها را بگذار و برنامه را ری‌استارت کن:\n' +
+        'LIA_LLM_BASE_URL=https://ai.boxapi.ir/ai/v1 · LIA_LLM_API_KEY=<کلید> · LIA_LLM_MODEL=gpt-6-luna',
+    );
+  }
+
   const { plan, note } = planDemo(session, text || lastUserText(agent));
   if (note) {
     io.say(note);
